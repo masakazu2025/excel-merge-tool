@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Excel Merge Tool - 差分レポート</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+  <style>
+    body { font-size: 14px; }
+    .sheet-tab.active { font-weight: bold; }
+    .conflict-badge { font-size: 11px; }
+    .diff-table td, .diff-table th { vertical-align: middle; font-size: 13px; }
+    .value-cell { max-width: 200px; word-break: break-all; font-family: monospace; font-size: 12px; }
+    .hint-new { color: #198754; }
+    .hint-insert { color: #0d6efd; }
+    .hint-delete { color: #dc3545; }
+    .hint-replace { color: #fd7e14; }
+    .shape-section .card-header { cursor: pointer; user-select: none; }
+    .radio-group { white-space: nowrap; }
+    .sticky-header { position: sticky; top: 0; background: white; z-index: 10; box-shadow: 0 2px 4px rgba(0,0,0,.08); }
+    .filter-bar { background: #f8f9fa; border-bottom: 1px solid #dee2e6; }
+  </style>
+</head>
+<body>
+
+<!-- サンプルデータ -->
+<script type="application/json" id="diff-data">
+{
+  "base_file": "base.xlsx",
+  "file_b": "file_b.xlsx",
+  "file_c": "file_c.xlsx",
+  "sheets": {
+    "Sheet1": {
+      "cells": [
+        {
+          "id": "Sheet1__B4",
+          "cell": "B4",
+          "base_value": "100",
+          "b_value": "150",
+          "c_value": null,
+          "type": "value",
+          "conflict": false,
+          "review_required": false,
+          "diff_hint": "replace"
+        },
+        {
+          "id": "Sheet1__D7",
+          "cell": "D7",
+          "base_value": "東京支店",
+          "b_value": "東京本社",
+          "c_value": "東京オフィス",
+          "type": "value",
+          "conflict": true,
+          "review_required": true,
+          "diff_hint": "replace"
+        },
+        {
+          "id": "Sheet1__E12",
+          "cell": "E12",
+          "base_value": "=SUM(E1:E11)",
+          "b_value": "=SUM(E1:E12)",
+          "c_value": null,
+          "type": "formula",
+          "conflict": false,
+          "review_required": true,
+          "diff_hint": "replace"
+        },
+        {
+          "id": "Sheet1__A3",
+          "cell": "A3",
+          "base_value": "",
+          "b_value": null,
+          "c_value": "新規追加テキスト",
+          "type": "value",
+          "conflict": false,
+          "review_required": false,
+          "diff_hint": "new"
+        },
+        {
+          "id": "Sheet1__F5",
+          "cell": "F5",
+          "base_value": "2024/01/15",
+          "b_value": "2024/03/20",
+          "c_value": null,
+          "type": "date",
+          "conflict": false,
+          "review_required": false,
+          "diff_hint": "newer_date"
+        }
+      ],
+      "comments": [
+        {
+          "id": "Sheet1__comment__C3",
+          "cell": "C3",
+          "base_value": "旧コメント内容",
+          "b_value": "更新されたコメント",
+          "c_value": null,
+          "type": "comment",
+          "conflict": false,
+          "review_required": false,
+          "diff_hint": "replace"
+        }
+      ],
+      "shapes": {
+        "matched": [
+          {
+            "id": "1",
+            "kind": "sp",
+            "name": "テキスト ボックス 1",
+            "base_text": "旧テキスト内容\n2行目",
+            "b_text": "新テキスト内容\n2行目",
+            "c_text": null,
+            "conflict": false
+          }
+        ],
+        "added_b": [
+          {"id": "5", "kind": "pic", "name": "画像 2"}
+        ],
+        "added_c": [],
+        "deleted_b": [],
+        "deleted_c": [
+          {"id": "3", "kind": "graphicFrame", "name": "グラフ 1"}
+        ]
+      }
+    },
+    "Sheet2": {
+      "cells": [
+        {
+          "id": "Sheet2__B2",
+          "cell": "B2",
+          "base_value": "山田太郎",
+          "b_value": "山田 太郎",
+          "c_value": null,
+          "type": "value",
+          "conflict": false,
+          "review_required": false,
+          "diff_hint": "replace"
+        },
+        {
+          "id": "Sheet2__C5",
+          "cell": "C5",
+          "base_value": "承認待ち",
+          "b_value": "承認済み",
+          "c_value": "却下",
+          "type": "value",
+          "conflict": true,
+          "review_required": true,
+          "diff_hint": "replace"
+        },
+        {
+          "id": "Sheet2__D8",
+          "cell": "D8",
+          "base_value": "旧備考",
+          "b_value": null,
+          "c_value": "新備考テキスト（長文）",
+          "type": "rich_text",
+          "conflict": false,
+          "review_required": true,
+          "diff_hint": "replace"
+        },
+        {
+          "id": "Sheet2__A10",
+          "cell": "A10",
+          "base_value": "削除予定",
+          "b_value": "",
+          "c_value": null,
+          "type": "value",
+          "conflict": false,
+          "review_required": false,
+          "diff_hint": "delete_only"
+        },
+        {
+          "id": "Sheet2__G3",
+          "cell": "G3",
+          "base_value": "",
+          "b_value": "追記内容A",
+          "c_value": null,
+          "type": "value",
+          "conflict": false,
+          "review_required": false,
+          "diff_hint": "insert_only"
+        },
+        {
+          "id": "Sheet2__H5",
+          "cell": "H5",
+          "base_value": "",
+          "b_value": "追記B",
+          "c_value": null,
+          "type": "value",
+          "conflict": false,
+          "review_required": false,
+          "diff_hint": "insert_only"
+        },
+        {
+          "id": "Sheet2__I5",
+          "cell": "I5",
+          "base_value": "",
+          "b_value": null,
+          "c_value": "追記C",
+          "type": "value",
+          "conflict": false,
+          "review_required": false,
+          "diff_hint": "new"
+        },
+        {
+          "id": "Sheet2__J5",
+          "cell": "J5",
+          "base_value": "既存値",
+          "b_value": "変更B",
+          "c_value": "変更C",
+          "type": "value",
+          "conflict": true,
+          "review_required": true,
+          "diff_hint": "replace"
+        },
+        {
+          "id": "Sheet2__K5",
+          "cell": "K5",
+          "base_value": "2023/12/01",
+          "b_value": "2024/06/15",
+          "c_value": null,
+          "type": "date",
+          "conflict": false,
+          "review_required": false,
+          "diff_hint": "newer_date"
+        },
+        {
+          "id": "Sheet2__L5",
+          "cell": "L5",
+          "base_value": "数式元",
+          "b_value": "=VLOOKUP(A1,M:N,2,0)",
+          "c_value": null,
+          "type": "formula",
+          "conflict": false,
+          "review_required": true,
+          "diff_hint": "replace"
+        },
+        {
+          "id": "Sheet2__M5",
+          "cell": "M5",
+          "base_value": "値A",
+          "b_value": "値B",
+          "c_value": null,
+          "type": "value",
+          "conflict": false,
+          "review_required": false,
+          "diff_hint": "replace"
+        },
+        {
+          "id": "Sheet2__N5",
+          "cell": "N5",
+          "base_value": "値X",
+          "b_value": null,
+          "c_value": "値Z",
+          "type": "value",
+          "conflict": false,
+          "review_required": false,
+          "diff_hint": "replace"
+        }
+      ],
+      "comments": [],
+      "shapes": {
+        "matched": [],
+        "added_b": [],
+        "added_c": [],
+        "deleted_b": [],
+        "deleted_c": []
+      }
+    },
+    "Sheet3": {
+      "cells": [],
+      "comments": [],
+      "shapes": {
+        "matched": [],
+        "added_b": [
+          {"id": "10", "kind": "sp", "name": "説明ボックス"}
+        ],
+        "added_c": [],
+        "deleted_b": [],
+        "deleted_c": []
+      }
+    }
+  }
+}
+</script>
+
+<div id="root"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/react@18/umd/react.development.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@babel/standalone/babel.min.js"></script>
+
+<script type="text/babel">
+const { useState, useMemo, useCallback } = React;
+
+const diffData = JSON.parse(document.getElementById('diff-data').textContent);
+
+// ---- ユーティリティ ----
+
+function countCells(sheetData) {
+  return (sheetData.cells?.length ?? 0) + (sheetData.comments?.length ?? 0);
+}
+
+function countShapes(sheetData) {
+  const s = sheetData.shapes;
+  if (!s) return 0;
+  return (s.matched?.filter(m => m.b_text || m.c_text).length ?? 0)
+    + (s.added_b?.length ?? 0) + (s.added_c?.length ?? 0)
+    + (s.deleted_b?.length ?? 0) + (s.deleted_c?.length ?? 0);
+}
+
+function hasConflict(sheetData) {
+  return (sheetData.cells ?? []).some(c => c.conflict)
+    || (sheetData.comments ?? []).some(c => c.conflict)
+    || (sheetData.shapes?.matched ?? []).some(m => m.conflict);
+}
+
+function totalDiffs() {
+  return Object.values(diffData.sheets).reduce((sum, s) => sum + countCells(s) + countShapes(s), 0);
+}
+
+function totalConflicts() {
+  return Object.values(diffData.sheets).reduce((sum, s) => {
+    const cellConflicts = [...(s.cells ?? []), ...(s.comments ?? [])].filter(c => c.conflict).length;
+    const shapeConflicts = (s.shapes?.matched ?? []).filter(m => m.conflict).length;
+    return sum + cellConflicts + shapeConflicts;
+  }, 0);
+}
+
+function hintLabel(hint) {
+  const map = {
+    new: { label: '新規', cls: 'hint-new' },
+    insert_only: { label: '追記', cls: 'hint-insert' },
+    delete_only: { label: '削除', cls: 'hint-delete' },
+    replace: { label: '変更', cls: 'hint-replace' },
+    newer_date: { label: '日付更新', cls: 'hint-insert' },
+  };
+  return map[hint] ?? { label: hint, cls: '' };
+}
+
+function typeLabel(type) {
+  const map = { value: '値', formula: '数式', rich_text: 'リッチテキスト', comment: 'コメント', date: '日付' };
+  return map[type] ?? type;
+}
+
+function kindLabel(kind) {
+  const map = { sp: 'テキストボックス', pic: '画像', graphicFrame: 'グラフ' };
+  return map[kind] ?? kind;
+}
+
+function escapeCSV(v) {
+  if (v == null) return '';
+  const s = String(v);
+  if (s.includes(',') || s.includes('"') || s.includes('\n')) {
+    return '"' + s.replace(/"/g, '""') + '"';
+  }
+  return s;
+}
+
+// ---- コンポーネント ----
+
+function Header() {
+  const total = totalDiffs();
+  const conflicts = totalConflicts();
+  return (
+    <div className="bg-dark text-white px-4 py-3 sticky-header">
+      <div className="d-flex align-items-center gap-3 flex-wrap">
+        <h5 className="mb-0">📊 Excel Merge Tool</h5>
+        <span className="text-secondary">|</span>
+        <small>
+          <span className="text-warning">base:</span> {diffData.base_file} &nbsp;
+          <span className="text-info">B:</span> {diffData.file_b} &nbsp;
+          <span className="text-success">C:</span> {diffData.file_c}
+        </small>
+        <div className="ms-auto d-flex gap-2">
+          <span className="badge bg-secondary">差分 {total}件</span>
+          {conflicts > 0 && <span className="badge bg-danger">競合 {conflicts}件</span>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SheetTabs({ sheets, activeSheet, onSelect }) {
+  return (
+    <div className="px-3 pt-2 border-bottom bg-white sticky-header" style={{top: '56px'}}>
+      <ul className="nav nav-tabs border-0">
+        {sheets.map(name => {
+          const s = diffData.sheets[name];
+          const count = countCells(s) + countShapes(s);
+          const conflict = hasConflict(s);
+          return (
+            <li className="nav-item" key={name}>
+              <button
+                className={`nav-link sheet-tab ${activeSheet === name ? 'active' : 'text-secondary'}`}
+                onClick={() => onSelect(name)}
+              >
+                {name}
+                {count > 0 && <span className="badge bg-secondary ms-1">{count}</span>}
+                {conflict && <span className="ms-1 text-danger">⚠</span>}
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
+
+function FilterBar({ filter, onFilter, totalVisible, totalSelected }) {
+  const btns = [
+    { key: 'all', label: '全て' },
+    { key: 'conflict', label: '⚠ 競合のみ' },
+    { key: 'b', label: 'Bの変更' },
+    { key: 'c', label: 'Cの変更' },
+    { key: 'review', label: '要確認' },
+  ];
+  return (
+    <div className="filter-bar px-3 py-2 d-flex align-items-center gap-2 flex-wrap">
+      <span className="text-muted small me-1">フィルター:</span>
+      {btns.map(b => (
+        <button
+          key={b.key}
+          className={`btn btn-sm ${filter === b.key ? 'btn-primary' : 'btn-outline-secondary'}`}
+          onClick={() => onFilter(b.key)}
+        >
+          {b.label}
+        </button>
+      ))}
+      <span className="ms-auto text-muted small">{totalVisible}件表示 / {totalSelected}件選択中</span>
+    </div>
+  );
+}
+
+function DiffRow({ item, selected, conflictChoice, onCheck, onConflictChoice }) {
+  const bVal = item.b_value ?? item.b_text;
+  const cVal = item.c_value ?? item.c_text;
+  const { label: hintLbl, cls: hintCls } = hintLabel(item.diff_hint);
+  const isChecked = selected;
+
+  return (
+    <>
+      <tr className={item.conflict ? 'table-warning' : ''}>
+        <td className="text-center">
+          <input
+            type="checkbox"
+            className="form-check-input"
+            checked={isChecked}
+            onChange={e => onCheck(item.id, e.target.checked)}
+          />
+        </td>
+        <td><code>{item.cell ?? item.id.split('__').pop()}</code></td>
+        <td><span className="badge bg-light text-dark border">{typeLabel(item.type)}</span></td>
+        <td className="value-cell text-muted">{item.base_value ?? item.base_text ?? '-'}</td>
+        <td className="value-cell">{bVal != null ? <span className="text-primary">{bVal}</span> : <span className="text-muted">-</span>}</td>
+        <td className="value-cell">{cVal != null ? <span className="text-success">{cVal}</span> : <span className="text-muted">-</span>}</td>
+        <td>
+          {item.conflict
+            ? <span className="badge bg-danger conflict-badge">⚠ 競合</span>
+            : <span className={`small ${hintCls}`}>{hintLbl}</span>}
+        </td>
+        <td>
+          {!item.conflict && (
+            <span className="badge bg-light text-dark border small">
+              {bVal != null ? 'B' : 'C'}
+            </span>
+          )}
+        </td>
+      </tr>
+      {item.conflict && isChecked && (
+        <tr className="table-warning">
+          <td></td>
+          <td colSpan="7">
+            <div className="radio-group d-flex gap-3 ps-2 py-1 align-items-center">
+              <small className="text-danger fw-bold me-2">どちらを採用しますか？</small>
+              <div className="form-check form-check-inline">
+                <input
+                  type="radio"
+                  className="form-check-input"
+                  name={`conflict-${item.id}`}
+                  id={`${item.id}-B`}
+                  value="B"
+                  checked={conflictChoice === 'B'}
+                  onChange={() => onConflictChoice(item.id, 'B')}
+                />
+                <label className="form-check-label" htmlFor={`${item.id}-B`}>
+                  <span className="text-primary fw-bold">B採用:</span> <code>{bVal}</code>
+                </label>
+              </div>
+              <div className="form-check form-check-inline">
+                <input
+                  type="radio"
+                  className="form-check-input"
+                  name={`conflict-${item.id}`}
+                  id={`${item.id}-C`}
+                  value="C"
+                  checked={conflictChoice === 'C'}
+                  onChange={() => onConflictChoice(item.id, 'C')}
+                />
+                <label className="form-check-label" htmlFor={`${item.id}-C`}>
+                  <span className="text-success fw-bold">C採用:</span> <code>{cVal}</code>
+                </label>
+              </div>
+              {!conflictChoice && <small className="text-danger ms-2">← 未解決</small>}
+            </div>
+          </td>
+        </tr>
+      )}
+    </>
+  );
+}
+
+function CellTable({ items, selected, conflictChoices, onCheckAll, onCheck, onConflictChoice, allChecked }) {
+  if (items.length === 0) {
+    return <p className="text-muted ps-3 py-2 small">該当する差分はありません</p>;
+  }
+  return (
+    <table className="table table-sm table-hover diff-table mb-0">
+      <thead className="table-light">
+        <tr>
+          <th style={{width: 36}}>
+            <input type="checkbox" className="form-check-input" checked={allChecked} onChange={e => onCheckAll(e.target.checked)} />
+          </th>
+          <th>セル</th>
+          <th>種別</th>
+          <th>現在値（base）</th>
+          <th style={{color:'#0d6efd'}}>Bの値</th>
+          <th style={{color:'#198754'}}>Cの値</th>
+          <th>状態</th>
+          <th>採用</th>
+        </tr>
+      </thead>
+      <tbody>
+        {items.map(item => (
+          <DiffRow
+            key={item.id}
+            item={item}
+            selected={selected.has(item.id)}
+            conflictChoice={conflictChoices[item.id]}
+            onCheck={onCheck}
+            onConflictChoice={onConflictChoice}
+          />
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+function ShapesSection({ shapes, selected, onCheck }) {
+  const [open, setOpen] = useState(true);
+
+  const shapeItems = useMemo(() => {
+    const items = [];
+    (shapes.matched ?? []).filter(m => m.b_text || m.c_text).forEach(m => {
+      items.push({ id: `shape-matched-${m.id}`, kind: m.kind, name: m.name, status: 'テキスト変更', source: m.b_text ? 'B' : 'C', conflict: m.conflict });
+    });
+    (shapes.added_b ?? []).forEach(s => items.push({ id: `shape-addb-${s.id}`, kind: s.kind, name: s.name, status: 'B追加', source: 'B' }));
+    (shapes.added_c ?? []).forEach(s => items.push({ id: `shape-addc-${s.id}`, kind: s.kind, name: s.name, status: 'C追加', source: 'C' }));
+    (shapes.deleted_b ?? []).forEach(s => items.push({ id: `shape-delb-${s.id}`, kind: s.kind, name: s.name, status: 'B削除', source: 'B' }));
+    (shapes.deleted_c ?? []).forEach(s => items.push({ id: `shape-delc-${s.id}`, kind: s.kind, name: s.name, status: 'C削除', source: 'C' }));
+    return items;
+  }, [shapes]);
+
+  if (shapeItems.length === 0) return null;
+
+  return (
+    <div className="shape-section mt-3 mx-3 mb-3">
+      <div className="card">
+        <div className="card-header d-flex align-items-center gap-2" onClick={() => setOpen(o => !o)}>
+          <span>{open ? '▼' : '▶'}</span>
+          <span className="fw-bold">図形・画像・グラフ差分</span>
+          <span className="badge bg-secondary">{shapeItems.length}件</span>
+        </div>
+        {open && (
+          <div className="card-body p-0">
+            <table className="table table-sm table-hover diff-table mb-0">
+              <thead className="table-light">
+                <tr>
+                  <th style={{width: 36}}></th>
+                  <th>図形名</th>
+                  <th>種別</th>
+                  <th>状態</th>
+                  <th>採用元</th>
+                </tr>
+              </thead>
+              <tbody>
+                {shapeItems.map(item => (
+                  <tr key={item.id} className={item.conflict ? 'table-warning' : ''}>
+                    <td className="text-center">
+                      <input
+                        type="checkbox"
+                        className="form-check-input"
+                        checked={selected.has(item.id)}
+                        onChange={e => onCheck(item.id, e.target.checked)}
+                      />
+                    </td>
+                    <td>{item.name}</td>
+                    <td><span className="badge bg-light text-dark border">{kindLabel(item.kind)}</span></td>
+                    <td>
+                      <span className={`badge ${
+                        item.status.includes('追加') ? 'bg-success' :
+                        item.status.includes('削除') ? 'bg-danger' : 'bg-warning text-dark'
+                      }`}>{item.status}</span>
+                    </td>
+                    <td><span className="badge bg-light text-dark border">{item.source}</span></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function App() {
+  const sheetNames = Object.keys(diffData.sheets);
+  const [activeSheet, setActiveSheet] = useState(sheetNames[0]);
+  const [filter, setFilter] = useState('all');
+  const [selected, setSelected] = useState(new Set());
+  const [conflictChoices, setConflictChoices] = useState({});
+  const [error, setError] = useState('');
+
+  const sheetData = diffData.sheets[activeSheet];
+  const allItems = useMemo(() => [
+    ...(sheetData.cells ?? []),
+    ...(sheetData.comments ?? []),
+  ], [activeSheet]);
+
+  const filteredItems = useMemo(() => {
+    return allItems.filter(item => {
+      if (filter === 'conflict') return item.conflict;
+      if (filter === 'b') return item.b_value != null && !item.conflict;
+      if (filter === 'c') return item.c_value != null && !item.conflict;
+      if (filter === 'review') return item.review_required;
+      return true;
+    });
+  }, [allItems, filter]);
+
+  const handleCheck = useCallback((id, checked) => {
+    setSelected(prev => {
+      const next = new Set(prev);
+      checked ? next.add(id) : next.delete(id);
+      return next;
+    });
+    setError('');
+  }, []);
+
+  const handleCheckAll = useCallback((checked) => {
+    setSelected(prev => {
+      const next = new Set(prev);
+      filteredItems.forEach(item => checked ? next.add(item.id) : next.delete(item.id));
+      return next;
+    });
+  }, [filteredItems]);
+
+  const handleConflictChoice = useCallback((id, choice) => {
+    setConflictChoices(prev => ({ ...prev, [id]: choice }));
+  }, []);
+
+  const handleShapeCheck = useCallback((id, checked) => {
+    setSelected(prev => {
+      const next = new Set(prev);
+      checked ? next.add(id) : next.delete(id);
+      return next;
+    });
+  }, []);
+
+  const allChecked = filteredItems.length > 0 && filteredItems.every(item => selected.has(item.id));
+
+  // 全シートの選択アイテム
+  const selectedItems = useMemo(() => {
+    const result = [];
+    for (const [sheetName, s] of Object.entries(diffData.sheets)) {
+      for (const item of [...(s.cells ?? []), ...(s.comments ?? [])]) {
+        if (selected.has(item.id)) result.push({ ...item, sheet: sheetName });
+      }
+    }
+    return result;
+  }, [selected]);
+
+  const handleExportCSV = () => {
+    // 競合チェック
+    const unresolvedConflicts = selectedItems.filter(item => item.conflict && !conflictChoices[item.id]);
+    if (unresolvedConflicts.length > 0) {
+      setError(`競合が未解決のセルがあります: ${unresolvedConflicts.map(i => i.cell).join(', ')}`);
+      return;
+    }
+    if (selected.size === 0) {
+      setError('1件以上選択してください');
+      return;
+    }
+    setError('');
+
+    const rows = [['sheet', 'cell', 'source', 'value', 'type']];
+    for (const item of selectedItems) {
+      let source, value;
+      if (item.conflict) {
+        source = conflictChoices[item.id];
+        value = source === 'B' ? item.b_value : item.c_value;
+      } else {
+        source = item.b_value != null ? 'B' : 'C';
+        value = item.b_value ?? item.c_value;
+      }
+      rows.push([item.sheet, item.cell, source, value ?? '', item.type]);
+    }
+
+    const csv = '\uFEFF' + rows.map(r => r.map(escapeCSV).join(',')).join('\r\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'merge_commands.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  return (
+    <div className="d-flex flex-column" style={{minHeight: '100vh'}}>
+      <Header />
+      <SheetTabs sheets={sheetNames} activeSheet={activeSheet} onSelect={name => { setActiveSheet(name); setFilter('all'); }} />
+      <FilterBar
+        filter={filter}
+        onFilter={setFilter}
+        totalVisible={filteredItems.length}
+        totalSelected={selected.size}
+      />
+
+      <div className="flex-grow-1">
+        <CellTable
+          items={filteredItems}
+          selected={selected}
+          conflictChoices={conflictChoices}
+          onCheckAll={handleCheckAll}
+          onCheck={handleCheck}
+          onConflictChoice={handleConflictChoice}
+          allChecked={allChecked}
+        />
+        <ShapesSection
+          shapes={sheetData.shapes}
+          selected={selected}
+          onCheck={handleShapeCheck}
+        />
+      </div>
+
+      {/* フッター（CSV出力） */}
+      <div className="border-top bg-white px-4 py-3 d-flex align-items-center gap-3 sticky-bottom">
+        {error && <span className="text-danger small">⚠ {error}</span>}
+        <button className="btn btn-primary ms-auto" onClick={handleExportCSV}>
+          CSV出力（{selected.size}件選択中）
+        </button>
+      </div>
+    </div>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App />);
+</script>
+</body>
+</html>
