@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import FileSelectionList, { type SelectedFile } from "../components/FileSelectionList";
-import ReportList from "../components/ReportList";
 
 let nextId = 0;
 
@@ -62,7 +61,7 @@ export default function Home() {
   const canCompare = files.length >= 2 && baseId !== null;
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
+    <div className="p-8">
       <div className="max-w-2xl mx-auto">
         <h1 className="text-2xl font-bold text-gray-800 mb-2">Excel 差分比較ツール</h1>
         <p className="text-gray-500 text-sm mb-8">Excelファイルを比較して差分を確認します</p>
@@ -87,8 +86,7 @@ export default function Home() {
           </button>
         </div>
 
-        {/* 過去レポート */}
-        <ReportList />
+
       </div>
     </div>
   );

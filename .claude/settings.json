@@ -4,7 +4,8 @@
       "Bash(git add:*)",
       "Bash(git push:*)",
       "Bash(poetry run:*)",
-      "Bash(curl -s http://127.0.0.1:8080/api/reports)"
+      "Bash(curl -s http://127.0.0.1:8080/api/reports)",
+      "Bash(npm run:*)"
     ]
   }
 }
