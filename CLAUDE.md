@@ -31,14 +31,17 @@ docs/
 ├── architecture.md         # アーキテクチャ図（Mermaid）
 ├── design/                 # 複数REQをまたぐ横断的な設計・スキーマ
 └── requirements/
-    └── REQ-001_name/       # 要件ごとのフォルダ
-        ├── spec.md         # 概要・受け入れ条件
-        ├── constraints.md  # 制限事項・対応しない範囲
-        ├── design.md       # 処理フロー・決定事項とその理由
-        ├── schema/
-        │   └── *.md        # データ構造（JSON・YAML形式など）
-        └── behaviors/
-            └── B-XXX.md    # 振舞仕様（Given/When/Then）
+    ├── backend/
+    │   └── REQ-001_name/   # 要件ごとのフォルダ
+    │       ├── spec.md         # 概要・受け入れ条件
+    │       ├── constraints.md  # 制限事項・対応しない範囲
+    │       ├── design.md       # 処理フロー・決定事項とその理由
+    │       ├── schema/
+    │       │   └── *.md        # データ構造（JSON・YAML形式など）
+    │       └── behaviors/
+    │           └── B-XXX.md    # 振舞仕様（Given/When/Then）
+    └── frontend/
+        └── REQ-003_name/   # 要件ごとのフォルダ（構造はbackendと同じ）
 
 tasks/
 ├── _template.md            # タスク作成テンプレート
