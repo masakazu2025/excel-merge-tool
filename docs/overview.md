@@ -3,7 +3,7 @@
 ## 目的
 
 3つのExcelファイル（マージ元、ファイルB、ファイルC）を比較し、
-差分を人間が確認・選択して安全に統合（マージ）するツール。
+差分を人間が確認できるWebアプリを提供する。
 
 ## 対象ファイル
 
@@ -20,28 +20,26 @@
 
 ---
 
-## アーキテクチャ（3段構成）
+## アーキテクチャ
 
 ```
-[マージ元.xlsx]  [ファイルB.xlsx]  [ファイルC.xlsx]
-        |                |                |
-        +----------------+----------------+
-                         |
-               ┌─────────▼─────────┐
-               │  Step 1: Python   │  ZIP解凍 → XML比較 → 差分抽出
-               └─────────┬─────────┘
-                         │ report.html（差分JSONを埋め込み）
-               ┌─────────▼─────────┐
-               │  Step 2: Python   │  HTMLテンプレート生成・JSON埋め込み
-               └─────────┬─────────┘
-                         │ report.html
-               ┌─────────▼─────────┐
-               │ Step 3: React UI  │  差分確認・マージ選択
-               └─────────┬─────────┘
-                         │ merge_commands.csv
-               ┌─────────▼─────────┐
-               │ Step 4: Excel VBA │  CSVを読みセル・図形をコピペ
-               └───────────────────┘
+[ブラウザ]
+  ├── ① Excelファイル3つをアップロード
+  └── ③ 差分レビュー画面（シートタブ・フィルター・差分テーブル）
+
+      ↕ HTTP (localhost)
+
+[FastAPI サーバー (Python)]
+  ├── POST /api/compare   → Step 1 実行 → diff.json 保存
+  ├── GET  /api/reports   → 保存済みレポート一覧
+  ├── GET  /api/reports/{id} → diff.json 取得
+  └── GET  /*             → React ビルド成果物を静的配信
+
+[Step 1: Python コアロジック]
+  └── ZIP解凍 → XML比較 → 差分抽出 → diff.json
+
+[output/]
+  └── {timestamp}_diff.json  （比較結果の保存先）
 ```
 
 ---
@@ -51,15 +49,23 @@
 | Step | 担当技術 | 主な処理 | 詳細ドキュメント |
 |------|----------|----------|-----------------|
 | 1 | Python | ZIP解凍・XMLパース・差分抽出 | [step1.md](feature/step1_python_extraction.md) |
-| 2 | Python | HTMLテンプレート生成・JSON埋め込み | [step2.md](feature/step2_html_generation.md) |
-| 3 | React (JS) | 差分UI・チェック選択・CSV出力 | [step3.md](feature/step3_frontend_ui.md) |
-| 4 | Excel VBA | CSVを読み込みマージ実行 | [step4.md](feature/step4_vba_macro.md) |
+| 2 | FastAPI | APIエンドポイント・静的ファイル配信 | [step2_fastapi_server.md](feature/step2_fastapi_server.md) |
+| 3 | React + Vite + Tailwind | アップロード画面・差分レビューUI | [step3_frontend_ui.md](feature/step3_frontend_ui.md) |
+
+---
+
+## 技術スタック
+
+| レイヤー | 技術 |
+|----------|------|
+| バックエンド | Python / FastAPI / uvicorn |
+| フロントエンド | React 18 / Vite / TypeScript / Tailwind CSS |
+| Excel解析 | Python 標準ライブラリ（zipfile / xml.etree） |
+| 実行方法 | `python src/main.py` → `http://localhost:8080` |
 
 ---
 
 ## 未確認・要議論の前提事項
-
-以下は実装に入る前に決める必要がある。
 
 - [ ] ファイルBとCの関係: 同一マージ元から独立して編集した2人分の変更か？
 - [ ] 競合ルール: BとCが同じセルを異なる値に変更した場合の扱い（UI上での選択 or 優先順位ルール）
