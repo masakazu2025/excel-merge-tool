@@ -24,26 +24,43 @@ app.add_middleware(
 # モックデータ
 # ---------------------------------------------------------------------------
 
-MOCK_REPORTS = [
-    {
-        "report_id": "20260314_153042",
-        "created_at": "2026-03-14T15:30:42",
-        "base_file": "base.xlsx",
-        "file_b": "file_b.xlsx",
-        "file_c": "file_c.xlsx",
-        "total_diffs": 17,
-        "total_conflicts": 3,
-    },
-    {
-        "report_id": "20260310_091200",
-        "created_at": "2026-03-10T09:12:00",
-        "base_file": "base_v2.xlsx",
-        "file_b": "tanaka.xlsx",
-        "file_c": "suzuki.xlsx",
-        "total_diffs": 5,
-        "total_conflicts": 0,
-    },
-]
+def _make_reports() -> list:
+    base = [
+        {
+            "report_id": "20260314_153042",
+            "created_at": "2026-03-14T15:30:42",
+            "base_file": "base.xlsx",
+            "file_b": "file_b.xlsx",
+            "file_c": "file_c.xlsx",
+            "total_diffs": 17,
+            "total_conflicts": 3,
+        },
+        {
+            "report_id": "20260310_091200",
+            "created_at": "2026-03-10T09:12:00",
+            "base_file": "base_v2.xlsx",
+            "file_b": "tanaka.xlsx",
+            "file_c": "suzuki.xlsx",
+            "total_diffs": 5,
+            "total_conflicts": 0,
+        },
+    ]
+    # ページネーション確認用に25件に水増し
+    extra = [
+        {
+            "report_id": f"2026030{i}_120000",
+            "created_at": f"2026-03-0{i}T12:00:00",
+            "base_file": f"base_{i}.xlsx",
+            "file_b": f"compare_{i}.xlsx",
+            "file_c": None,
+            "total_diffs": i * 3,
+            "total_conflicts": 0,
+        }
+        for i in range(1, 24)
+    ]
+    return base + extra
+
+MOCK_REPORTS = _make_reports()
 
 MOCK_DIFF: dict = {
     "meta": MOCK_REPORTS[0],
@@ -235,8 +252,10 @@ MOCK_DIFF: dict = {
 # ---------------------------------------------------------------------------
 
 @app.get("/api/reports")
-def list_reports():
-    return MOCK_REPORTS
+def list_reports(page: int = 1, limit: int = 20):
+    start = (page - 1) * limit
+    items = MOCK_REPORTS[start: start + limit]
+    return {"items": items, "total": len(MOCK_REPORTS), "page": page, "limit": limit}
 
 
 @app.get("/api/reports/{report_id}")
