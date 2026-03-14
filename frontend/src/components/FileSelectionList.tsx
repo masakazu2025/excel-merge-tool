@@ -13,14 +13,20 @@ type Props = {
   onBaseChange: (id: string) => void;
 };
 
+const ACCEPT_EXTS = [".xlsx", ".xlsm"];
+
+function isAccepted(file: File) {
+  return ACCEPT_EXTS.some((ext) => file.name.endsWith(ext));
+}
+
 export default function FileSelectionList({ files, baseId, onAdd, onRemove, onBaseChange }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
 
   function handleFiles(incoming: FileList | null) {
     if (!incoming) return;
-    const xlsxFiles = Array.from(incoming).filter((f) => f.name.endsWith(".xlsx"));
-    if (xlsxFiles.length > 0) onAdd(xlsxFiles);
+    const accepted = Array.from(incoming).filter(isAccepted);
+    if (accepted.length > 0) onAdd(accepted);
   }
 
   function handleDrop(e: React.DragEvent) {
@@ -45,14 +51,14 @@ export default function FileSelectionList({ files, baseId, onAdd, onRemove, onBa
           ここにドロップ または{" "}
           <span className="text-blue-600 font-medium">ファイルを選択</span>
         </p>
-        <p className="text-xs text-gray-400 mt-1">.xlsx 形式 / 複数選択可</p>
+        <p className="text-xs text-gray-400 mt-1">.xlsx / .xlsm 形式 / 複数選択可</p>
         <input
           ref={inputRef}
           type="file"
-          accept=".xlsx"
+          accept=".xlsx,.xlsm"
           multiple
           className="hidden"
-          onChange={(e) => handleFiles(e.target.files)}
+          onChange={(e) => { handleFiles(e.target.files); e.target.value = ""; }}
         />
       </div>
 
@@ -64,16 +70,15 @@ export default function FileSelectionList({ files, baseId, onAdd, onRemove, onBa
             return (
               <div
                 key={item.id}
-                className="flex items-center gap-3 px-4 py-2.5 border-b last:border-b-0 bg-white"
+                onClick={() => onBaseChange(item.id)}
+                className="flex items-center gap-3 px-4 py-2.5 border-b last:border-b-0 bg-white hover:bg-gray-50 cursor-pointer transition-colors"
               >
-                {/* ラジオ */}
-                <input
-                  type="radio"
-                  name="base"
-                  checked={isBase}
-                  onChange={() => onBaseChange(item.id)}
-                  className="shrink-0 accent-blue-600"
-                />
+                {/* カスタムラジオ */}
+                <div className={`shrink-0 w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors ${
+                  isBase ? "border-blue-600 bg-blue-600" : "border-gray-400 bg-white"
+                }`}>
+                  {isBase && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                </div>
 
                 {/* ファイル名 */}
                 <span
@@ -92,7 +97,7 @@ export default function FileSelectionList({ files, baseId, onAdd, onRemove, onBa
 
                 {/* 削除ボタン */}
                 <button
-                  onClick={() => onRemove(item.id)}
+                  onClick={(e) => { e.stopPropagation(); onRemove(item.id); }}
                   className="shrink-0 text-gray-400 hover:text-red-500 transition-colors text-lg leading-none"
                   title="削除"
                 >
