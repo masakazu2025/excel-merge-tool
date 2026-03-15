@@ -22,17 +22,32 @@ export default function History() {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(25);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     setLoading(true);
-    fetch(`/api/reports?page=${page}&limit=${limit}`)
-      .then((r) => r.json())
-      .then((data: PagedResponse) => {
-        setReports(data.items);
-        setTotal(data.total);
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
+    setError("");
+    (async () => {
+      try {
+        let res: Response;
+        try {
+          res = await fetch(`/api/reports?page=${page}&limit=${limit}`);
+        } catch {
+          throw new Error("サーバーに接続できません");
+        }
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data?.detail?.message ?? "履歴の取得に失敗しました");
+        }
+        const data: PagedResponse = await res.json();
+        setReports(data.items ?? []);
+        setTotal(data.total ?? 0);
+      } catch (e: unknown) {
+        setError(e instanceof Error ? e.message : "エラーが発生しました");
+      } finally {
+        setLoading(false);
+      }
+    })();
   }, [page, limit]);
 
   const totalPages = Math.ceil(total / limit);
@@ -46,6 +61,7 @@ export default function History() {
     <div className="max-w-4xl mx-auto p-8">
       <h1 className="text-xl font-bold text-gray-800 mb-6">比較履歴</h1>
 
+      {error && <p className="text-sm text-red-600 mb-4">{error}</p>}
       {loading ? (
         <p className="text-sm text-gray-400">読み込み中...</p>
       ) : reports.length === 0 && page === 1 ? (

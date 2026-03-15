@@ -43,8 +43,16 @@ export default function DiffGrid({ cells }: Props) {
 
   // Parse and index cells
   const parsed = cells
-    .map((d) => ({ diff: d, pos: parseCell(d.cell) }))
-    .filter((x): x is { diff: CellDiff; pos: { col: string; row: number } } => x.pos !== null);
+    .map((d) => {
+      if (!d?.cell) {
+        console.error("不正なセルデータをスキップ:", d);
+        return null;
+      }
+      return { diff: d, pos: parseCell(d.cell) };
+    })
+    .filter((x): x is { diff: CellDiff; pos: { col: string; row: number } } =>
+      x !== null && x.pos !== null
+    );
 
   const uniqueRows = [...new Set(parsed.map((x) => x.pos.row))].sort((a, b) => a - b);
   const uniqueCols = [...new Set(parsed.map((x) => x.pos.col))].sort(

@@ -24,16 +24,35 @@ export default function Report() {
 
   useEffect(() => {
     if (!reportId) return;
-    fetch(`/api/reports/${reportId}`)
-      .then((r) => {
-        if (!r.ok) throw new Error("レポートが見つかりません");
-        return r.json();
-      })
-      .then((data: DiffReport) => {
+    (async () => {
+      try {
+        let res: Response;
+        try {
+          res = await fetch(`/api/reports/${reportId}`);
+        } catch {
+          throw new Error("サーバーに接続できません");
+        }
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data?.detail?.message ?? "レポートが見つかりません");
+        }
+        let data: DiffReport;
+        try {
+          data = await res.json();
+        } catch (e) {
+          console.error("レポートJSONパース失敗:", e);
+          throw new Error("レポートの形式が正しくありません");
+        }
+        if (!data?.sheets || typeof data.sheets !== "object") {
+          console.error("レポート構造不正:", data);
+          throw new Error("レポートの形式が正しくありません");
+        }
         setReport(data);
         setActiveSheet(Object.keys(data.sheets)[0] ?? "");
-      })
-      .catch((e: Error) => setError(e.message));
+      } catch (e: unknown) {
+        setError(e instanceof Error ? e.message : "エラーが発生しました");
+      }
+    })();
   }, [reportId]);
 
   if (error) {

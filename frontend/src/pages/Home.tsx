@@ -47,10 +47,18 @@ export default function Home() {
       form.append("file_b", others[0].file);
       if (others[1]) form.append("file_c", others[1].file);
 
-      // TODO: モック - 実際のAPI呼び出しに置き換える
-      console.log("compare", { base: baseFile.file.name, others: others.map((o) => o.file.name) });
-      await new Promise((r) => setTimeout(r, 800));
-      navigate("/report/mock");
+      let res: Response;
+      try {
+        res = await fetch("/api/compare", { method: "POST", body: form });
+      } catch {
+        throw new Error("サーバーに接続できません");
+      }
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data?.detail?.message ?? "比較処理中にエラーが発生しました");
+      }
+      const result = await res.json();
+      navigate(`/report/${result.report_id}`);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "エラーが発生しました");
     } finally {

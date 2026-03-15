@@ -1,9 +1,12 @@
 """GET /api/reports, GET /api/reports/{report_id}"""
 
 import json
+import logging
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException
+
+logger = logging.getLogger(__name__)
 
 OUTPUT_DIR = Path(__file__).parent.parent.parent / "output"
 
@@ -38,5 +41,9 @@ def get_report(report_id: str):
     """指定レポートのdiff.jsonを返す"""
     path = OUTPUT_DIR / f"{report_id}_diff.json"
     if not path.exists():
-        raise HTTPException(status_code=404, detail="Report not found")
-    return json.loads(path.read_text(encoding="utf-8"))
+        raise HTTPException(status_code=404, detail={"error_code": "E006", "message": "レポートが見つかりません"})
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except Exception as e:
+        logger.error("レポート読み込み失敗（%s）: %s", report_id, e)
+        raise HTTPException(status_code=404, detail={"error_code": "E007", "message": "レポートを開けませんでした"})

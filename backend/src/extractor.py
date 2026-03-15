@@ -1,11 +1,24 @@
 """Excel差分抽出コアロジック（zipfile + ElementTree による直接XMLパース）"""
 
 import io
+import logging
 import re
 import zipfile
 import xml.etree.ElementTree as ET
 from datetime import datetime
 from typing import Optional
+
+logger = logging.getLogger(__name__)
+
+ALLOWED_EXTENSIONS = {".xlsx", ".xlsm"}
+
+
+class AppError(Exception):
+    """アプリケーション定義エラー"""
+    def __init__(self, error_code: str, message: str):
+        self.error_code = error_code
+        self.message = message
+        super().__init__(message)
 
 # ---------------------------------------------------------------------------
 # XML 名前空間
@@ -31,23 +44,35 @@ def extract_diff(
 ) -> dict:
     """
     2〜3つのExcelファイル（bytes）を比較して差分dictを返す。
-
-    Returns:
-        {
-            "meta": { ... },
-            "sheets": { シート名: { "cells": [...], "comments": [...], "shapes": {...} } }
-        }
+    エラー時は AppError を送出する。
     """
-    base_wb = _parse_workbook(base_bytes)
-    b_wb = _parse_workbook(b_bytes)
-    c_wb = _parse_workbook(c_bytes) if c_bytes else None
+    _validate_extension(base_name)
+    _validate_extension(b_name)
+    if c_name:
+        _validate_extension(c_name)
+
+    try:
+        base_wb = _parse_workbook(base_bytes)
+        b_wb = _parse_workbook(b_bytes)
+        c_wb = _parse_workbook(c_bytes) if c_bytes else None
+    except AppError:
+        raise
+    except Exception as e:
+        logger.error("予期せぬエラー（ワークブックパース）: %s", e)
+        raise AppError("E005", "比較処理中にエラーが発生しました") from e
 
     sheets: dict = {}
     for sheet_name, base_sheet in base_wb.items():
         b_sheet = b_wb.get(sheet_name, {})
         c_sheet = c_wb.get(sheet_name, {}) if c_wb else None
+        try:
+            cells = _compare_cells(sheet_name, base_sheet, b_sheet, c_sheet)
+        except AppError:
+            raise
+        except Exception as e:
+            logger.error("予期せぬエラー（セル比較 sheet=%s）: %s", sheet_name, e)
+            raise AppError("E005", "比較処理中にエラーが発生しました") from e
 
-        cells = _compare_cells(sheet_name, base_sheet, b_sheet, c_sheet)
         sheets[sheet_name] = {
             "cells": cells,
             "comments": [],
@@ -60,8 +85,17 @@ def extract_diff(
             },
         }
 
+    if not sheets:
+        raise AppError("E003", "比較可能なシートが見つかりません")
+
     meta = _build_meta(base_name, b_name, c_name, sheets)
     return {"meta": meta, "sheets": sheets}
+
+
+def _validate_extension(filename: str) -> None:
+    ext = "." + filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
+    if ext not in ALLOWED_EXTENSIONS:
+        raise AppError("E001", "対応していないファイル形式です")
 
 
 # ---------------------------------------------------------------------------
@@ -73,17 +107,44 @@ def _parse_workbook(xlsx_bytes: bytes) -> dict:
     Returns:
         {sheet_name: {coord: {"value": str|None, "type": str}}}
     """
-    with zipfile.ZipFile(io.BytesIO(xlsx_bytes)) as zf:
+    try:
+        zf_obj = zipfile.ZipFile(io.BytesIO(xlsx_bytes))
+    except zipfile.BadZipFile as e:
+        raise AppError("E002", "ファイルが破損しているか読み込めません") from e
+
+    with zf_obj as zf:
         names = set(zf.namelist())
 
-        shared_strings = _parse_shared_strings(zf, names)
-        date_style_ids = _parse_date_style_indices(zf, names)
-        sheet_list = _parse_sheet_list(zf, names)
+        if "xl/workbook.xml" not in names:
+            raise AppError("E002", "ファイルが破損しているか読み込めません")
+
+        try:
+            shared_strings = _parse_shared_strings(zf, names)
+            date_style_ids = _parse_date_style_indices(zf, names)
+            sheet_list = _parse_sheet_list(zf, names)
+        except AppError:
+            raise
+        except ET.ParseError as e:
+            raise AppError("E004", "ファイルの内容を解析できませんでした") from e
+        except Exception as e:
+            logger.error("XMLパースエラー: %s", e)
+            raise AppError("E004", "ファイルの内容を解析できませんでした") from e
+
+        if not sheet_list:
+            raise AppError("E003", "比較可能なシートが見つかりません")
 
         result = {}
         for sheet_name, sheet_path in sheet_list:
             if sheet_path in names:
-                result[sheet_name] = _parse_sheet(zf, sheet_path, shared_strings, date_style_ids)
+                try:
+                    result[sheet_name] = _parse_sheet(zf, sheet_path, shared_strings, date_style_ids)
+                except AppError:
+                    raise
+                except ET.ParseError as e:
+                    raise AppError("E004", "ファイルの内容を解析できませんでした") from e
+                except Exception as e:
+                    logger.error("シートパースエラー（%s）: %s", sheet_name, e)
+                    raise AppError("E004", "ファイルの内容を解析できませんでした") from e
 
     return result
 
