@@ -209,3 +209,4 @@ __marimo__/
 # Backup directory
 /_bak/
 /backend/.venv/
+/backend/.venv_win/

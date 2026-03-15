@@ -15,6 +15,13 @@ def get_base_dir() -> Path:
 
 
 def main():
+    # PyInstaller の console=False 時は stdout/stderr が None になるため devnull へ向ける
+    if getattr(sys, "frozen", False):
+        import os
+        devnull = open(os.devnull, "w")
+        sys.stdout = devnull
+        sys.stderr = devnull
+
     base_dir = get_base_dir()
 
     # output ディレクトリをベースに設定（レポート保存先）
@@ -38,7 +45,7 @@ def main():
         app,
         host="127.0.0.1",
         port=8080,
-        log_level="warning",
+        log_config=None,
     )
 
 
