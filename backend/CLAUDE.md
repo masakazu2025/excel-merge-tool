@@ -33,6 +33,9 @@ backend/
 - 各モジュールで `from logger import get_logger; logger = get_logger(__name__)` を使用
 - エラーは `logger.exception()` でスタックトレースを記録
 - `print()` は使用禁止
+- uvicorn のアクセスログは意図的に無効（`log_config=None`）
+  - 理由: デスクトップツールのため処理量が少なく、アクセスログの価値が低い
+  - 有効化する場合は main.py のコメントを参照すること
 
 ### エラーハンドリング
 - 業務エラーは `AppError(error_code, message)` を raise する

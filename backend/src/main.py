@@ -42,6 +42,8 @@ def main():
         app,
         host="127.0.0.1",
         port=8080,
+        # uvicorn のアクセスログは無効（処理量が少ないデスクトップツールのため不要）
+        # 有効化する場合は log_config=None を削除し、パターンAの統合ログを検討すること
         log_config=None,
     )
 
