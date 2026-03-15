@@ -38,11 +38,10 @@ req: REQ-001
   "cell": "B4",
   "base_value": "旧値",
   "b_value": "新値B",
-  "c_value": null,
+  "c_value": "旧値",
   "type": "value",
-  "conflict": false,
-  "review_required": true,
-  "diff_hint": "replace"
+  "changed_by": "b",
+  "status": "update"
 }
 ```
 
@@ -50,13 +49,46 @@ req: REQ-001
 |-----------|-----|------|
 | id | string | `{シート名}__{セル位置}` |
 | cell | string | セル位置（例: `B4`） |
-| base_value | string\|null | ベースの値 |
-| b_value | string\|null | Bの値（変更なしは null） |
-| c_value | string\|null | Cの値（変更なしは null） |
+| base_value | string\|null | ベースの値（常に実値を保持） |
+| b_value | string\|null | Bの値（常に実値を保持） |
+| c_value | string\|null | Cの値（2ファイル比較時は null） |
 | type | string | `value` \| `formula` \| `rich_text` \| `date` |
-| conflict | boolean | B≠C の場合 true |
-| review_required | boolean | 人間が確認すべき場合 true |
-| diff_hint | string | `new` \| `insert_only` \| `delete_only` \| `replace` \| `newer_date` |
+| changed_by | string\|null | 変更者（下表参照） |
+| status | string | 変更種別（下表参照） |
+
+### changed_by
+
+| 値 | 意味 |
+|----|------|
+| `"b"` | B のみ変更 |
+| `"c"` | C のみ変更 |
+| `"both"` | B と C 両方変更 |
+| `null` | 変更なし |
+
+### status
+
+| 値 | 意味 |
+|--------|------|
+| `"new"` | null → 値（新規入力） |
+| `"delete"` | 値 → null（削除） |
+| `"add"` | 元の値の末尾にテキストが追記 |
+| `"sub"` | 元の値の末尾からテキストが削除 |
+| `"update"` | 上記以外の変更（途中編集・全置換など） |
+| `"conflict"` | `changed_by: "both"` かつ B ≠ C |
+| `"no_change"` | 変更なし |
+
+### changed_by × status の組み合わせ例
+
+| changed_by | status | 意味 |
+|-----------|--------|------|
+| `"b"` | `"new"` | B が新規入力 |
+| `"b"` | `"add"` | B が末尾追記 |
+| `"b"` | `"sub"` | B が末尾削除 |
+| `"b"` | `"update"` | B が更新 |
+| `"b"` | `"delete"` | B が削除 |
+| `"both"` | `"update"` | B と C が同じ値に更新 |
+| `"both"` | `"conflict"` | B と C が異なる値に更新 |
+| `null` | `"no_change"` | 変更なし |
 
 ## shapes（図形差分）
 
@@ -69,8 +101,9 @@ req: REQ-001
       "name": "テキスト ボックス 1",
       "base_text": "旧テキスト",
       "b_text": "新テキストB",
-      "c_text": null,
-      "conflict": false
+      "c_text": "旧テキスト",
+      "changed_by": "b",
+      "status": "update"
     }
   ],
   "added_b": [{"id": "5", "kind": "pic", "name": "画像 2"}],
