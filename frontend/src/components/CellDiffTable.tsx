@@ -1,12 +1,14 @@
 import { useState } from "react";
-import type { CellDiff, DiffHint, CellType } from "../types/diff";
+import type { CellDiff, CellStatus, CellType } from "../types/diff";
 
-const HINT_STYLES: Record<DiffHint, { label: string; cls: string }> = {
-  new: { label: "新規", cls: "text-green-600" },
-  insert_only: { label: "追記", cls: "text-blue-600" },
-  delete_only: { label: "削除", cls: "text-red-600" },
-  replace: { label: "変更", cls: "text-orange-500" },
-  newer_date: { label: "日付更新", cls: "text-blue-500" },
+const STATUS_STYLES: Record<CellStatus, { label: string; cls: string }> = {
+  new:       { label: "新規",     cls: "text-green-600" },
+  add:       { label: "追記",     cls: "text-blue-600" },
+  sub:       { label: "末尾削除", cls: "text-orange-500" },
+  delete:    { label: "削除",     cls: "text-red-600" },
+  update:    { label: "変更",     cls: "text-orange-500" },
+  conflict:  { label: "競合",     cls: "text-red-600" },
+  no_change: { label: "変更なし", cls: "text-gray-400" },
 };
 
 const TYPE_LABELS: Record<CellType, string> = {
@@ -17,9 +19,9 @@ const TYPE_LABELS: Record<CellType, string> = {
   date: "日付",
 };
 
-function HintBadge({ hint, conflict }: { hint: DiffHint; conflict: boolean }) {
-  if (conflict) return <span className="text-red-600 font-medium text-xs">⚠ 競合</span>;
-  const { label, cls } = HINT_STYLES[hint] ?? { label: hint, cls: "" };
+function StatusBadge({ status }: { status: CellStatus }) {
+  if (status === "conflict") return <span className="text-red-600 font-medium text-xs">⚠ 競合</span>;
+  const { label, cls } = STATUS_STYLES[status] ?? { label: status, cls: "" };
   return <span className={`text-xs ${cls}`}>{label}</span>;
 }
 
@@ -28,7 +30,7 @@ function DiffRow({ item }: { item: CellDiff }) {
 
   return (
     <>
-      <tr className={item.conflict ? "bg-amber-50" : "hover:bg-gray-50"}>
+      <tr className={item.status === "conflict" ? "bg-amber-50" : "hover:bg-gray-50"}>
         <td className="px-3 py-2 font-mono text-xs text-gray-700">{item.cell}</td>
         <td className="px-3 py-2">
           <span className="bg-gray-100 text-gray-600 text-xs px-1.5 py-0.5 rounded">{TYPE_LABELS[item.type]}</span>
@@ -43,10 +45,10 @@ function DiffRow({ item }: { item: CellDiff }) {
           {item.c_value ?? <span className="text-gray-300">-</span>}
         </td>
         <td className="px-3 py-2">
-          <HintBadge hint={item.diff_hint} conflict={item.conflict} />
+          <StatusBadge status={item.status} />
         </td>
       </tr>
-      {item.conflict && (
+      {item.status === "conflict" && (
         <tr className="bg-amber-50 border-b border-amber-100">
           <td></td>
           <td colSpan={5} className="px-3 pb-2">

@@ -5,12 +5,13 @@ import ShapesSection from "../components/ShapesSection";
 import DiffGrid from "../components/DiffGrid";
 import type { DiffReport, CellDiff } from "../types/diff";
 
-type FilterType = "all" | "conflict" | "review";
+export type FilterType = "all" | "conflict" | "b" | "c";
 
 const FILTER_LABELS: { value: FilterType; label: string }[] = [
   { value: "all",      label: "すべて" },
-  { value: "conflict", label: "コンフリクト" },
-  { value: "review",   label: "要確認" },
+  { value: "conflict", label: "⚠ 競合" },
+  { value: "b",        label: "B の変更" },
+  { value: "c",        label: "C の変更" },
 ];
 
 export default function Report() {
@@ -63,8 +64,9 @@ export default function Report() {
   ];
 
   const filteredCells = allCells.filter((c) => {
-    if (filter === "conflict") return c.conflict;
-    if (filter === "review")   return c.review_required;
+    if (filter === "conflict") return c.status === "conflict";
+    if (filter === "b")        return c.changed_by === "b" || c.changed_by === "both";
+    if (filter === "c")        return c.changed_by === "c" || c.changed_by === "both";
     return true;
   });
 
@@ -117,9 +119,10 @@ export default function Report() {
         <div className="ml-auto flex items-center gap-3 text-xs text-gray-500">
           <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-orange-200 border border-orange-400 inline-block" />競合</span>
           <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-yellow-100 border border-yellow-400 inline-block" />変更</span>
-          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-green-100 border border-green-400 inline-block" />追加</span>
+          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-green-100 border border-green-400 inline-block" />新規</span>
+          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-blue-100 border border-blue-400 inline-block" />追記</span>
           <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-red-100 border border-red-400 inline-block" />削除</span>
-          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-purple-100 border border-purple-400 inline-block" />日付</span>
+          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-red-50 border border-red-300 inline-block" />末尾削除</span>
         </div>
       </div>
 

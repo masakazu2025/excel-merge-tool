@@ -6,9 +6,9 @@ function countDiffs(sheet: SheetDiff): number {
 
 function hasConflict(sheet: SheetDiff): boolean {
   return (
-    (sheet.cells ?? []).some((c) => c.conflict) ||
-    (sheet.comments ?? []).some((c) => c.conflict) ||
-    (sheet.shapes?.matched ?? []).some((m) => m.conflict)
+    (sheet.cells ?? []).some((c) => c.status === "conflict") ||
+    (sheet.comments ?? []).some((c) => c.status === "conflict") ||
+    (sheet.shapes?.matched ?? []).some((m) => m.status === "conflict")
   );
 }
 

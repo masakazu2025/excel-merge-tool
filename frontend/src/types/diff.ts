@@ -1,4 +1,5 @@
-export type DiffHint = "new" | "insert_only" | "delete_only" | "replace" | "newer_date";
+export type CellStatus = "new" | "delete" | "add" | "sub" | "update" | "conflict" | "no_change";
+export type ChangedBy = "b" | "c" | "both" | null;
 export type CellType = "value" | "formula" | "rich_text" | "comment" | "date";
 export type ShapeKind = "sp" | "pic" | "graphicFrame";
 
@@ -9,9 +10,8 @@ export interface CellDiff {
   b_value: string | null;
   c_value: string | null;
   type: CellType;
-  conflict: boolean;
-  review_required: boolean;
-  diff_hint: DiffHint;
+  changed_by: ChangedBy;
+  status: CellStatus;
 }
 
 export interface ShapeMatched {
@@ -21,7 +21,8 @@ export interface ShapeMatched {
   base_text: string | null;
   b_text: string | null;
   c_text: string | null;
-  conflict: boolean;
+  changed_by: ChangedBy;
+  status: CellStatus;
 }
 
 export interface ShapeItem {

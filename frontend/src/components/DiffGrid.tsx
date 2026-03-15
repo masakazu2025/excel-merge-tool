@@ -21,18 +21,19 @@ function colToNum(col: string): number {
 }
 
 function cellBg(diff: CellDiff): string {
-  if (diff.conflict) return "bg-orange-200 border-orange-400";
-  switch (diff.diff_hint) {
-    case "new":         return "bg-green-100 border-green-400";
-    case "insert_only": return "bg-blue-100 border-blue-400";
-    case "delete_only": return "bg-red-100 border-red-400";
-    case "newer_date":  return "bg-purple-100 border-purple-400";
-    default:            return "bg-yellow-100 border-yellow-400"; // replace
+  switch (diff.status) {
+    case "conflict": return "bg-orange-200 border-orange-400";
+    case "new":      return "bg-green-100 border-green-400";
+    case "add":      return "bg-blue-100 border-blue-400";
+    case "delete":   return "bg-red-100 border-red-400";
+    case "sub":      return "bg-red-50 border-red-300";
+    default:         return "bg-yellow-100 border-yellow-400"; // update
   }
 }
 
 function displayValue(diff: CellDiff): string {
-  return diff.b_value !== null ? diff.b_value : (diff.base_value ?? "");
+  // B値を優先表示。Bが変更なし(b_value = base_value)でもb_valueに実値が入っている
+  return diff.b_value ?? diff.base_value ?? "";
 }
 
 export default function DiffGrid({ cells }: Props) {

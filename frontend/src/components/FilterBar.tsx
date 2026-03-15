@@ -1,11 +1,10 @@
 import type { FilterType } from "../pages/Report";
 
 const FILTERS: { key: FilterType; label: string }[] = [
-  { key: "all", label: "全て" },
+  { key: "all",      label: "全て" },
   { key: "conflict", label: "⚠ 競合のみ" },
-  { key: "b", label: "Bの変更" },
-  { key: "c", label: "Cの変更" },
-  { key: "review", label: "要確認" },
+  { key: "b",        label: "Bの変更" },
+  { key: "c",        label: "Cの変更" },
 ];
 
 interface Props {

@@ -44,14 +44,14 @@ export default function CellDetailModal({ cell, onClose }: Props) {
         <div className="flex items-center justify-between px-5 py-3 border-b border-gray-200">
           <div className="flex items-center gap-3">
             <span className="font-mono font-bold text-gray-700">{cell.cell}</span>
-            {cell.conflict && (
+            {cell.status === "conflict" && (
               <span className="text-xs bg-orange-100 text-orange-700 border border-orange-300 px-2 py-0.5 rounded">
                 コンフリクト
               </span>
             )}
-            {cell.review_required && !cell.conflict && (
-              <span className="text-xs bg-yellow-100 text-yellow-700 border border-yellow-300 px-2 py-0.5 rounded">
-                要確認
+            {cell.status !== "conflict" && cell.status !== "no_change" && (
+              <span className="text-xs bg-gray-100 text-gray-600 border border-gray-300 px-2 py-0.5 rounded">
+                {cell.status}
               </span>
             )}
             <span className="text-xs text-gray-400">{cell.type}</span>
