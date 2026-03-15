@@ -1,0 +1,6 @@
+# ロガー設定
+log_level_console: WARNING   # コンソール出力レベル（DEBUG / INFO / WARNING / ERROR）
+log_level_file: INFO          # ファイル出力レベル（DEBUG / INFO / WARNING / ERROR）
+rotate_when: midnight         # ローテーションタイミング（midnight / h / d / w0-w6）
+backup_count: 30              # ログファイルの保持日数
+log_dir: logs                 # ログ出力ディレクトリ（exe 基準の相対パス）

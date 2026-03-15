@@ -15,14 +15,11 @@ def get_base_dir() -> Path:
 
 
 def main():
-    # PyInstaller の console=False 時は stdout/stderr が None になるため devnull へ向ける
-    if getattr(sys, "frozen", False):
-        import os
-        devnull = open(os.devnull, "w")
-        sys.stdout = devnull
-        sys.stderr = devnull
-
     base_dir = get_base_dir()
+
+    # ロガー初期化（最初に行う）
+    from logger import setup_logging
+    setup_logging(base_dir)
 
     # output ディレクトリをベースに設定（レポート保存先）
     import api.compare as compare_module
