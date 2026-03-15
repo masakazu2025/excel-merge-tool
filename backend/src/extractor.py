@@ -160,6 +160,7 @@ def _parse_sheet_list(zf: zipfile.ZipFile, names: set) -> list:
         r_id = sheet.get(f"{{{NS_R}}}id", "")
         target = rels.get(r_id, "")
         if target:
+            target = target.lstrip("/")          # "/xl/..." → "xl/..."
             if not target.startswith("xl/"):
                 target = f"xl/{target}"
             result.append((name, target))
