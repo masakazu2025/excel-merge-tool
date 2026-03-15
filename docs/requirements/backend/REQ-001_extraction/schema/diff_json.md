@@ -90,6 +90,37 @@ req: REQ-001
 | `"both"` | `"conflict"` | B と C が異なる値に更新 |
 | `null` | `"no_change"` | 変更なし |
 
+## comments（コメント差分）
+
+セル差分（cells）と同じフィールド構成。テキスト値の代わりにコメントテキストを保持する。
+
+```json
+{
+  "cell": "B4",
+  "base_text": "確認済み",
+  "b_text": "確認済み\n追記あり",
+  "c_text": "確認済み",
+  "changed_by": "b",
+  "status": "add"
+}
+```
+
+| フィールド | 型 | 内容 |
+|-----------|-----|------|
+| cell | string | セル位置（例: `B4`） |
+| base_text | string\|null | ベースのコメントテキスト |
+| b_text | string\|null | B のコメントテキスト |
+| c_text | string\|null | C のコメントテキスト（2ファイル比較時は null） |
+| changed_by | string\|null | cells と同じ定義 |
+| status | string | cells と同じ定義（new/delete/add/sub/update/conflict） |
+
+### 備考
+
+- `id` フィールドは持たない（セル座標が識別子）
+- スレッドコメントはスレッド内の全返信テキストを結合して1つのテキストとして比較する
+- 変更なしのコメントは出力しない（cells と同じ挙動）
+- 将来的に cells と統合し階層構造へ移行予定（TASK-021）
+
 ## shapes（図形差分）
 
 ```json
@@ -106,9 +137,9 @@ req: REQ-001
       "status": "update"
     }
   ],
-  "added_b": [{"id": "5", "kind": "pic", "name": "画像 2"}],
+  "added_b": [{"id": "5", "kind": "pic", "name": "画像 2", "status": "new"}],
   "added_c": [...],
-  "deleted_b": [{"id": "3", "kind": "graphicFrame", "name": "グラフ 1"}],
+  "deleted_b": [{"id": "3", "kind": "graphicFrame", "name": "グラフ 1", "status": "delete"}],
   "deleted_c": [...]
 }
 ```

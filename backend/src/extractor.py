@@ -63,7 +63,9 @@ def extract_diff(
 
     sheets: dict = {}
     for sheet_name, base_sheet in base_wb.items():
-        b_sheet = b_wb.get(sheet_name, {})
+        if sheet_name not in b_wb:
+            continue
+        b_sheet = b_wb[sheet_name]
         c_sheet = c_wb.get(sheet_name, {}) if c_wb else None
         try:
             cells = _compare_cells(sheet_name, base_sheet, b_sheet, c_sheet)
