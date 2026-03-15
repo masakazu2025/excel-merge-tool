@@ -5,6 +5,7 @@ from pathlib import Path
 
 ROOT = Path(SPECPATH).parent  # プロジェクトルート（backend/ の親）
 FRONTEND_DIST = ROOT / "frontend" / "dist"
+CONFIG_DIR = Path(SPECPATH) / "config"
 
 a = Analysis(
     ["src/main.py"],
@@ -12,6 +13,7 @@ a = Analysis(
     binaries=[],
     datas=[
         (str(FRONTEND_DIST), "frontend/dist"),  # React ビルド成果物
+        (str(CONFIG_DIR), "config"),             # logging.yaml 等の設定ファイル
     ],
     hiddenimports=[
         "uvicorn.logging",
@@ -26,6 +28,7 @@ a = Analysis(
         "uvicorn.lifespan.on",
         "anyio",
         "anyio._backends._asyncio",
+        "yaml",
     ],
     hookspath=[],
     hooksconfig={},
@@ -39,20 +42,27 @@ pyz = PYZ(a.pure)
 exe = EXE(
     pyz,
     a.scripts,
-    a.binaries,
-    a.datas,
     [],
+    exclude_binaries=True,
     name="excel-merge-tool",
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
     upx=True,
-    upx_exclude=[],
-    runtime_tmpdir=None,
-    console=False,   # コンソールウィンドウを非表示
+    console=True,   # コンソールウィンドウを表示（終了しやすくする）
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
+)
+
+coll = COLLECT(
+    exe,
+    a.binaries,
+    a.datas,
+    strip=False,
+    upx=True,
+    upx_exclude=[],
+    name="excel-merge-tool",
 )
