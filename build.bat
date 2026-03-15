@@ -48,7 +48,9 @@ set RELEASE_DIR=%ROOT%dist\%VERSION%_%TIMESTAMP%
 
 mkdir "%RELEASE_DIR%"
 xcopy /e /i /q "%ROOT%backend\dist\excel-merge-tool" "%RELEASE_DIR%\excel-merge-tool"
-if errorlevel 1 ( echo FAILED: copy release & pause & exit /b 1 )
+if errorlevel 1 ( echo FAILED: copy exe & pause & exit /b 1 )
+xcopy /e /i /q "%ROOT%backend\config" "%RELEASE_DIR%\excel-merge-tool\config"
+if errorlevel 1 ( echo FAILED: copy config & pause & exit /b 1 )
 
 echo [5] Cleanup intermediate build files...
 rmdir /s /q "%ROOT%backend\build"

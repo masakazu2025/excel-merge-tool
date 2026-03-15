@@ -13,7 +13,7 @@ a = Analysis(
     binaries=[],
     datas=[
         (str(FRONTEND_DIST), "frontend/dist"),  # React ビルド成果物
-        (str(CONFIG_DIR), "config"),             # logging.yaml 等の設定ファイル
+        # config/ はバンドルせず exe の隣に配置（ユーザー編集可）→ build.bat でコピー
     ],
     hiddenimports=[
         "uvicorn.logging",
@@ -28,7 +28,6 @@ a = Analysis(
         "uvicorn.lifespan.on",
         "anyio",
         "anyio._backends._asyncio",
-        "yaml",
     ],
     hookspath=[],
     hooksconfig={},
