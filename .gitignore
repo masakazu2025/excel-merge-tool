@@ -6,6 +6,11 @@ __pycache__/
 # C extensions
 *.so
 
+# Runtime output (generated at runtime, not tracked)
+output/
+logs/
+backend/logs/
+
 # Distribution / packaging
 .Python
 build/
