@@ -33,6 +33,8 @@ if errorlevel 1 ( echo FAILED: PyInstaller & popd & pause & exit /b 1 )
 popd
 
 echo [4] Collect release package...
+set /p VERSION=<"%ROOT%version.txt"
+set VERSION=v%VERSION%
 for /f "tokens=1-6 delims=/:. " %%a in ("%date% %time: =0%") do (
     set YYYY=%%c
     set MM=%%b
@@ -42,7 +44,6 @@ for /f "tokens=1-6 delims=/:. " %%a in ("%date% %time: =0%") do (
     set SS=%%f
 )
 set TIMESTAMP=%YYYY%%MM%%DD%%HH%%MI%%SS%
-set VERSION=v0.1
 set RELEASE_DIR=%ROOT%dist\%VERSION%_%TIMESTAMP%
 
 mkdir "%RELEASE_DIR%"
