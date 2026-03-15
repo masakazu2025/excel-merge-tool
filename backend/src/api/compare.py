@@ -6,6 +6,7 @@ from datetime import datetime
 from pathlib import Path
 
 from fastapi import APIRouter, File, UploadFile
+from typing import Optional
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from extractor import extract_diff  # noqa: E402
@@ -19,12 +20,12 @@ router = APIRouter()
 async def compare(
     base_file: UploadFile = File(...),
     file_b: UploadFile = File(...),
-    file_c: UploadFile = File(...),
+    file_c: Optional[UploadFile] = File(default=None),
 ):
-    """3つのExcelファイルを受け取り差分抽出してJSONを保存する"""
+    """2〜3つのExcelファイルを受け取り差分抽出してJSONを保存する"""
     base_bytes = await base_file.read()
     b_bytes = await file_b.read()
-    c_bytes = await file_c.read()
+    c_bytes = await file_c.read() if file_c else None
 
     diff = extract_diff(
         base_bytes=base_bytes,
@@ -32,7 +33,7 @@ async def compare(
         c_bytes=c_bytes,
         base_name=base_file.filename or "base.xlsx",
         b_name=file_b.filename or "file_b.xlsx",
-        c_name=file_c.filename or "file_c.xlsx",
+        c_name=file_c.filename if file_c else None,
     )
 
     OUTPUT_DIR.mkdir(exist_ok=True)
