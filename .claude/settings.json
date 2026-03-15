@@ -5,7 +5,19 @@
       "Bash(git push:*)",
       "Bash(poetry run:*)",
       "Bash(curl -s http://127.0.0.1:8080/api/reports)",
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "Bash(.venv/bin/pip install:*)",
+      "Bash(.venv/bin/python -m pip install pytest pytest-asyncio httpx)",
+      "Bash(.venv/bin/python -m pytest tests/test_extractor.py -v)",
+      "Bash(.venv/bin/python -m pytest tests/test_b001_cell_diff.py -v)",
+      "Bash(.venv/bin/python -m pytest tests/test_b003_status.py -v)",
+      "Bash(.venv/bin/python -m pytest tests/test_b004_comments.py -v)",
+      "Bash(.venv/bin/python -m pytest tests/test_b008_b009_reports_api.py -v)",
+      "Bash(.venv/bin/python -m pytest tests/test_api.py -v)",
+      "Bash(.venv/bin/python -m pytest tests/ -v --tb=no)"
+    ],
+    "additionalDirectories": [
+      "/home/masakazu/projects/excel-merge-tool/tasks/active"
     ]
   }
 }

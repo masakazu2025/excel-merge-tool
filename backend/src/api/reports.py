@@ -14,15 +14,15 @@ router = APIRouter()
 
 
 @router.get("/api/reports")
-def list_reports():
-    """保存済みレポート一覧を新しい順で返す"""
-    reports = []
+def list_reports(page: int = 1, limit: int = 10):
+    """保存済みレポート一覧を新しい順・ページネーション付きで返す"""
+    all_reports = []
     for path in sorted(OUTPUT_DIR.glob("*_diff.json"), reverse=True):
         try:
             data = json.loads(path.read_text(encoding="utf-8"))
             meta = data.get("meta", {})
             report_id = path.stem.replace("_diff", "")
-            reports.append({
+            all_reports.append({
                 "report_id": report_id,
                 "created_at": meta.get("created_at"),
                 "base_file": meta.get("base_file"),
@@ -33,7 +33,9 @@ def list_reports():
             })
         except Exception:
             continue
-    return reports
+    total = len(all_reports)
+    start = (page - 1) * limit
+    return {"items": all_reports[start:start + limit], "total": total, "page": page}
 
 
 @router.get("/api/reports/{report_id}")

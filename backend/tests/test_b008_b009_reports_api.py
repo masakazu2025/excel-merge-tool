@@ -50,26 +50,28 @@ class TestListReports:
         """
         Given: output/ に diff.json が1件もない
         When:  GET /api/reports
-        Then:  空配列が返る
+        Then:  items が空配列、total が 0 で返る
         """
         monkeypatch.setattr(reports_module, "OUTPUT_DIR", tmp_path)
 
         res = client.get("/api/reports")
         assert res.status_code == 200
-        assert res.json() == []
+        body = res.json()
+        assert body["items"] == []
+        assert body["total"] == 0
 
     def test_returns_meta_fields(self, tmp_path, monkeypatch):
         """
         Given: diff.json が1件存在する
         When:  GET /api/reports
-        Then:  report_id / created_at / base_file / file_b / file_c /
+        Then:  items[0] に report_id / created_at / base_file / file_b / file_c /
                total_diffs / total_conflicts が含まれる
         """
         monkeypatch.setattr(reports_module, "OUTPUT_DIR", tmp_path)
         seed_report(tmp_path, "20260314_120000")
 
         res = client.get("/api/reports")
-        item = res.json()[0]
+        item = res.json()["items"][0]
         for key in ("report_id", "created_at", "base_file", "file_b", "file_c",
                     "total_diffs", "total_conflicts"):
             assert key in item, f"key '{key}' missing"
@@ -77,13 +79,13 @@ class TestListReports:
     def test_report_id_matches_filename(self, tmp_path, monkeypatch):
         """
         Given: 20260314_120000_diff.json が存在する
-        Then:  report_id == "20260314_120000"
+        Then:  items[0].report_id == "20260314_120000"
         """
         monkeypatch.setattr(reports_module, "OUTPUT_DIR", tmp_path)
         seed_report(tmp_path, "20260314_120000")
 
         res = client.get("/api/reports")
-        assert res.json()[0]["report_id"] == "20260314_120000"
+        assert res.json()["items"][0]["report_id"] == "20260314_120000"
 
     def test_sorted_descending(self, tmp_path, monkeypatch):
         """
@@ -97,20 +99,52 @@ class TestListReports:
         seed_report(tmp_path, "20260313_150000")
 
         res = client.get("/api/reports")
-        ids = [item["report_id"] for item in res.json()]
+        ids = [item["report_id"] for item in res.json()["items"]]
         assert ids == sorted(ids, reverse=True)
 
     def test_multiple_reports_count(self, tmp_path, monkeypatch):
         """
         Given: output/ に3件の diff.json が存在する
-        Then:  一覧に3件含まれる
+        Then:  total が 3、items に3件含まれる
         """
         monkeypatch.setattr(reports_module, "OUTPUT_DIR", tmp_path)
         for rid in ("20260314_100000", "20260315_090000", "20260313_150000"):
             seed_report(tmp_path, rid)
 
         res = client.get("/api/reports")
-        assert len(res.json()) == 3
+        body = res.json()
+        assert body["total"] == 3
+        assert len(body["items"]) == 3
+
+    def test_pagination_limit(self, tmp_path, monkeypatch):
+        """
+        Given: output/ に5件の diff.json が存在する
+        When:  GET /api/reports?page=1&limit=2
+        Then:  items が 2件、total が 5
+        """
+        monkeypatch.setattr(reports_module, "OUTPUT_DIR", tmp_path)
+        for i in range(5):
+            seed_report(tmp_path, f"2026031{i}_100000")
+
+        res = client.get("/api/reports?page=1&limit=2")
+        body = res.json()
+        assert body["total"] == 5
+        assert len(body["items"]) == 2
+
+    def test_pagination_page2(self, tmp_path, monkeypatch):
+        """
+        Given: output/ に5件の diff.json が存在する
+        When:  GET /api/reports?page=2&limit=2
+        Then:  items が 2件（2ページ目）
+        """
+        monkeypatch.setattr(reports_module, "OUTPUT_DIR", tmp_path)
+        for i in range(5):
+            seed_report(tmp_path, f"2026031{i}_100000")
+
+        res = client.get("/api/reports?page=2&limit=2")
+        body = res.json()
+        assert len(body["items"]) == 2
+        assert body["page"] == 2
 
 
 # ---------------------------------------------------------------------------

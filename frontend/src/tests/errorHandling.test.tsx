@@ -233,7 +233,7 @@ describe('F003: DiffGrid に不正なセルデータ', () => {
     base_value: '旧',
     b_value: '新',
     c_value: null,
-    type: 'string',
+    type: 'value',
     changed_by: 'b',
     status: 'update',
   }

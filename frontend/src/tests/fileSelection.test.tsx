@@ -1,7 +1,7 @@
 /**
  * B-010〜B-020, B-024: ファイル選択画面の振舞テスト
  */
-import { describe, it, expect, vi, afterEach } from 'vitest'
+import { describe, it, expect } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
