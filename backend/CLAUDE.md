@@ -30,7 +30,12 @@ backend/
 ## コーディング規約
 
 ### ロガー
-- 各モジュールで `from logger import get_logger; logger = get_logger(__name__)` を使用
+- `logger.py` で設定済みのロガーを `get_logger(__name__)` で取得して使用する
+  ```python
+  from logger import get_logger
+  logger = get_logger(__name__)
+  ```
+- `__name__` を渡すことでモジュール名がログに出力され、発生箇所を特定しやすくなる
 - エラーは `logger.exception()` でスタックトレースを記録
 - `print()` は使用禁止
 - uvicorn のアクセスログは意図的に無効（`log_config=None`）
