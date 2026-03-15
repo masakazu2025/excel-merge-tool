@@ -18,8 +18,10 @@ def main():
     base_dir = get_base_dir()
 
     # ロガー初期化（最初に行う）
-    from logger import setup_logging
+    from logger import setup_logging, get_logger
     setup_logging(base_dir)
+    logger = get_logger(__name__)
+    logger.info("サーバー起動: http://127.0.0.1:8080")
 
     # output ディレクトリをベースに設定（レポート保存先）
     import api.compare as compare_module

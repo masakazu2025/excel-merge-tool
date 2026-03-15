@@ -1,7 +1,6 @@
 """POST /api/compare"""
 
 import json
-import logging
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -11,9 +10,10 @@ from typing import Optional
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from extractor import AppError, extract_diff  # noqa: E402
+from logger import get_logger  # noqa: E402
 
 OUTPUT_DIR = Path(__file__).parent.parent.parent / "output"
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 router = APIRouter()
 
@@ -29,6 +29,8 @@ async def compare(
     b_bytes = await file_b.read()
     c_bytes = await file_c.read() if file_c else None
 
+    logger.info("比較開始: %s, %s, %s", base_file.filename, file_b.filename, file_c.filename if file_c else None)
+
     try:
         diff = extract_diff(
             base_bytes=base_bytes,
@@ -39,6 +41,7 @@ async def compare(
             c_name=file_c.filename if file_c else None,
         )
     except AppError as e:
+        logger.error("%s: %s", e.error_code, e.message)
         raise HTTPException(status_code=422, detail={"error_code": e.error_code, "message": e.message})
 
     try:
@@ -51,6 +54,7 @@ async def compare(
         raise HTTPException(status_code=422, detail={"error_code": "E005", "message": "比較処理中にエラーが発生しました"})
 
     meta = diff.get("meta", {})
+    logger.info("比較完了: %s, 差分%d件, 競合%d件", base_file.filename, meta.get("total_diffs", 0), meta.get("total_conflicts", 0))
     return {
         "report_id": report_id,
         "created_at": meta.get("created_at"),

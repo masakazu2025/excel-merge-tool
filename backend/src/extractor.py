@@ -1,14 +1,15 @@
 """Excel差分抽出コアロジック（zipfile + ElementTree による直接XMLパース）"""
 
 import io
-import logging
 import re
 import zipfile
 import xml.etree.ElementTree as ET
 from datetime import datetime
 from typing import Optional
 
-logger = logging.getLogger(__name__)
+from logger import get_logger
+
+logger = get_logger(__name__)
 
 ALLOWED_EXTENSIONS = {".xlsx", ".xlsm"}
 
@@ -51,6 +52,8 @@ def extract_diff(
     if c_name:
         _validate_extension(c_name)
 
+    logger.info("抽出開始: %s, %s, %s", base_name, b_name, c_name)
+
     try:
         base_wb = _parse_workbook(base_bytes)
         b_wb = _parse_workbook(b_bytes)
@@ -91,6 +94,7 @@ def extract_diff(
         raise AppError("E003", "比較可能なシートが見つかりません")
 
     meta = _build_meta(base_name, b_name, c_name, sheets)
+    logger.info("抽出完了: %s, 差分%d件, 競合%d件", base_name, meta.get("total_diffs", 0), meta.get("total_conflicts", 0))
     return {"meta": meta, "sheets": sheets}
 
 
