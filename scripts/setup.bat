@@ -9,7 +9,7 @@ if %errorlevel% == 0 (
     echo Poetry found. Using poetry install...
     pushd "%ROOT%\backend"
     poetry config virtualenvs.in-project true
-    poetry lock --no-update
+    poetry lock
     if errorlevel 1 ( echo FAILED: poetry lock & popd & pause & exit /b 1 )
     poetry install
     if errorlevel 1 ( echo FAILED: poetry install & popd & pause & exit /b 1 )
