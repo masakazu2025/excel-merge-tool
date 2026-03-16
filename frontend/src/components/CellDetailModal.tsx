@@ -13,7 +13,7 @@ function ValueBox({ label, value, color }: { label: string; value: string | null
       <p className={`text-xs font-semibold mb-1 ${color.replace("border-", "text-").replace("-300", "-700")}`}>
         {label}
       </p>
-      <pre className="text-sm text-gray-800 whitespace-pre-wrap break-words font-sans leading-relaxed">
+      <pre className="text-sm text-gray-800 whitespace-pre-wrap break-words font-sans leading-relaxed text-left">
         {value || <span className="text-gray-400 italic">（空）</span>}
       </pre>
     </div>
