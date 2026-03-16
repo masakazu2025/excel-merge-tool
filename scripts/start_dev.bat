@@ -13,7 +13,8 @@ if not exist "%VENV%" (
 )
 
 echo Starting backend...
-start "backend" cmd /k "cd /d "%ROOT%\backend" && set PYTHONPATH=%ROOT%\backend\src && "%PYTHON%" -m uvicorn src.app:app --reload --reload-dir src"
+set PYTHONPATH=%ROOT%\backend\src
+start "backend" cmd /k "cd /d "%ROOT%\backend" && "%PYTHON%" -m uvicorn src.app:app --reload --reload-dir src"
 
 echo Starting frontend...
 start "frontend" cmd /k "cd /d "%ROOT%\frontend" && npm run dev"
