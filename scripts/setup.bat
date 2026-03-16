@@ -11,7 +11,7 @@ if %errorlevel% == 0 (
     poetry config virtualenvs.in-project true
     poetry lock
     if errorlevel 1 ( echo FAILED: poetry lock & popd & pause & exit /b 1 )
-    poetry install
+    poetry install --extras dev
     if errorlevel 1 ( echo FAILED: poetry install & popd & pause & exit /b 1 )
     popd
 ) else (
