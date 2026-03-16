@@ -2,7 +2,7 @@
 id: TASK-031
 title: 環境構築とビルドをスクリプト分離する
 type: impl
-status: ready
+status: done
 refs:
   - https://github.com/masakazu2025/excel-merge-tool/issues/2
 files:

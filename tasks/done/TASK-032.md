@@ -2,7 +2,7 @@
 id: TASK-032
 title: ルート直下の build.bat / build.sh を削除・移動する
 type: impl
-status: ready
+status: done
 refs:
   - https://github.com/masakazu2025/excel-merge-tool/issues/5
 files:
