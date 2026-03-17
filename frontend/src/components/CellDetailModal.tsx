@@ -9,7 +9,7 @@ type Props = {
 
 function ValueBox({ label, value, color }: { label: string; value: string | null; color: string }) {
   return (
-    <div className={`rounded border ${color} p-3 flex-1 min-w-0 flex flex-col`}>
+    <div className={`rounded border ${color} p-3 flex-1 min-w-0 flex flex-col min-h-0`}>
       <p className={`text-xs font-semibold mb-1 ${color.replace("border-", "text-").replace("-300", "-700")}`}>
         {label}
       </p>
@@ -68,7 +68,7 @@ export default function CellDetailModal({ cell, onClose, hasFileC }: Props) {
         </div>
 
         {/* 内容 */}
-        <div className="p-5 overflow-y-auto flex gap-3">
+        <div className="p-5 flex gap-3 flex-1 min-h-0">
           <ValueBox label="Base（比較元）" value={cell.base_value} color="border-gray-300" />
           <ValueBox label="B（変更A）" value={cell.b_value} color="border-blue-300" />
           {hasFileC && <ValueBox label="C（変更B）" value={cell.c_value} color="border-green-300" />}
