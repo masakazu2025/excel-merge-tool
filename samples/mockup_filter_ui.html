@@ -42,6 +42,11 @@
     </button>
     <div id="col-dropdown" class="hidden absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded shadow-lg z-50 min-w-[120px]">
       <div class="px-3 py-2 text-xs text-gray-500 border-b">表示する列</div>
+      <div class="flex gap-2 px-3 py-1.5 border-b">
+        <button onclick="selectAll('col')" class="text-xs text-blue-600 hover:underline">すべて選択</button>
+        <span class="text-gray-300">|</span>
+        <button onclick="deselectAll('col')" class="text-xs text-blue-600 hover:underline">すべて解除</button>
+      </div>
       <label class="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-50 cursor-pointer text-xs"><input type="checkbox" checked class="accent-blue-600"> A</label>
       <label class="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-50 cursor-pointer text-xs"><input type="checkbox" checked class="accent-blue-600"> B</label>
       <label class="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-50 cursor-pointer text-xs"><input type="checkbox" checked class="accent-blue-600"> C</label>
@@ -57,6 +62,11 @@
     </button>
     <div id="row-dropdown" class="hidden absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded shadow-lg z-50 min-w-[120px]">
       <div class="px-3 py-2 text-xs text-gray-500 border-b">表示する行</div>
+      <div class="flex gap-2 px-3 py-1.5 border-b">
+        <button onclick="selectAll('row')" class="text-xs text-blue-600 hover:underline">すべて選択</button>
+        <span class="text-gray-300">|</span>
+        <button onclick="deselectAll('row')" class="text-xs text-blue-600 hover:underline">すべて解除</button>
+      </div>
       <label class="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-50 cursor-pointer text-xs"><input type="checkbox" checked class="accent-blue-600"> 2</label>
       <label class="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-50 cursor-pointer text-xs"><input type="checkbox" checked class="accent-blue-600"> 4</label>
       <label class="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-50 cursor-pointer text-xs"><input type="checkbox" checked class="accent-blue-600"> 7</label>
@@ -110,6 +120,18 @@
 </div>
 
 <script>
+function selectAll(type) {
+  document.querySelectorAll(`#${type}-dropdown input[type=checkbox]`).forEach(c => {
+    if (!c.checked) { c.checked = true; c.dispatchEvent(new Event('change', { bubbles: true })) }
+  })
+}
+
+function deselectAll(type) {
+  document.querySelectorAll(`#${type}-dropdown input[type=checkbox]`).forEach(c => {
+    if (c.checked) { c.checked = false; c.dispatchEvent(new Event('change', { bubbles: true })) }
+  })
+}
+
 function toggleDropdown(type) {
   const col = document.getElementById('col-dropdown')
   const row = document.getElementById('row-dropdown')
