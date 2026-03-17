@@ -109,14 +109,28 @@ export default function Report() {
   // 列・行フィルタ
   const sheetFilter = colRowFilters[activeSheet] ?? { excludedCols: new Set(), excludedRows: new Set() };
 
-  // 差分セルから列・行の一覧を導出
-  const allCols = [...new Set(allCells.map((c) => c.cell.match(/^([A-Z]+)/)?.[1] ?? "").filter(Boolean))].sort();
-  const allRows = [...new Set(allCells.map((c) => c.cell.match(/(\d+)$/)?.[1] ?? "").filter(Boolean))].sort((a, b) => Number(a) - Number(b));
+  // 差分セルから列・行の一覧を導出（相互フィルタ適用後のセルから導出）
+  const allCols = [...new Set(
+    allCells
+      .filter((c) => !sheetFilter.excludedRows.has(c.cell.match(/(\d+)$/)?.[1] ?? ""))
+      .map((c) => c.cell.match(/^([A-Z]+)/)?.[1] ?? "")
+      .filter(Boolean)
+  )].sort((a, b) => a.localeCompare(b));
+  const allRows = [...new Set(
+    allCells
+      .filter((c) => !sheetFilter.excludedCols.has(c.cell.match(/^([A-Z]+)/)?.[1] ?? ""))
+      .map((c) => c.cell.match(/(\d+)$/)?.[1] ?? "")
+      .filter(Boolean)
+  )].sort((a, b) => Number(a) - Number(b));
+
+  // 有効な除外セット（ドロップダウン項目にない項目は自動クリア）
+  const effectiveExcludedCols = new Set([...sheetFilter.excludedCols].filter((c) => allCols.includes(c)));
+  const effectiveExcludedRows = new Set([...sheetFilter.excludedRows].filter((r) => allRows.includes(r)));
 
   const colRowFilteredCells = allCells.filter((c) => {
     const col = c.cell.match(/^([A-Z]+)/)?.[1] ?? "";
     const row = c.cell.match(/(\d+)$/)?.[1] ?? "";
-    return !sheetFilter.excludedCols.has(col) && !sheetFilter.excludedRows.has(row);
+    return !effectiveExcludedCols.has(col) && !effectiveExcludedRows.has(row);
   });
 
   const filteredCells = colRowFilteredCells.filter((c) => {
@@ -189,13 +203,13 @@ export default function Report() {
         <ColRowFilter
           label="列"
           items={allCols}
-          excluded={sheetFilter.excludedCols}
+          excluded={effectiveExcludedCols}
           onChange={updateColFilter}
         />
         <ColRowFilter
           label="行"
           items={allRows}
-          excluded={sheetFilter.excludedRows}
+          excluded={effectiveExcludedRows}
           onChange={updateRowFilter}
         />
 

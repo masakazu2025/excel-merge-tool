@@ -445,4 +445,25 @@ describe('B-031: 列・行フィルタ', () => {
       expect(screen.getByText('B1値')).toBeInTheDocument()
     })
   })
+
+  it('列を除外すると行フィルタのドロップダウンからその列にしかない行が消える', async () => {
+    const user = userEvent.setup()
+    mockReport({
+      Sheet1: { cells: [
+        makeCell({ cell: 'A1', status: 'update', b_value: 'A1値' }),
+        makeCell({ cell: 'D3', status: 'update', b_value: 'D3値' }), // 3行目はD列のみ
+      ] },
+    })
+    renderReport()
+    await waitFor(() => expect(screen.getByText('A1値')).toBeInTheDocument())
+
+    // D列を除外
+    await user.click(screen.getByRole('button', { name: /列/ }))
+    await user.click(screen.getByLabelText('D'))
+
+    // 行フィルタを開く → 3行目（D列のみ）は項目に出ない
+    await user.click(screen.getByRole('button', { name: /行/ }))
+    expect(screen.queryByLabelText('3')).not.toBeInTheDocument()
+    expect(screen.getByLabelText('1')).toBeInTheDocument()
+  })
 })
