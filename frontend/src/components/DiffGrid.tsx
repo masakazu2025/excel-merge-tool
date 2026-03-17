@@ -4,6 +4,7 @@ import CellDetailModal from "./CellDetailModal";
 
 type Props = {
   cells: CellDiff[];
+  hasFileC?: boolean;
 };
 
 // "B4" → { col: "B", row: 4 }
@@ -36,7 +37,7 @@ function displayValue(diff: CellDiff): string {
   return diff.b_value ?? diff.base_value ?? "";
 }
 
-export default function DiffGrid({ cells }: Props) {
+export default function DiffGrid({ cells, hasFileC = false }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [focusedId, setFocusedId] = useState<string | null>(null);
   const [modalCell, setModalCell] = useState<CellDiff | null>(null);
@@ -151,7 +152,7 @@ export default function DiffGrid({ cells }: Props) {
 
   return (
     <>
-    {modalCell && <CellDetailModal cell={modalCell} onClose={() => setModalCell(null)} />}
+    {modalCell && <CellDetailModal cell={modalCell} onClose={() => setModalCell(null)} hasFileC={hasFileC} />}
     <div
       ref={containerRef}
       tabIndex={0}
