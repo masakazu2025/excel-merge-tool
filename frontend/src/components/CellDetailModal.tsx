@@ -40,7 +40,7 @@ export default function CellDetailModal({ cell, onClose, hasFileC }: Props) {
     >
       <div
         data-testid="cell-detail-modal"
-        className="bg-white rounded-xl shadow-2xl w-full max-w-3xl mx-4 h-72 flex flex-col"
+        className="bg-white rounded-xl shadow-2xl w-full max-w-3xl mx-4 h-[36rem] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* ヘッダー */}
