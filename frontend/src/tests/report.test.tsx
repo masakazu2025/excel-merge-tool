@@ -4,6 +4,7 @@
  * B-028: モーダルを開いたままキーボードで差分セル間を移動できる
  * B-029: シートを切り替えられる
  * B-031: 列・行フィルタで特定の列・行を除外できる
+ * B-032: 詳細モーダルのサイズ固定とセル表示の統一
  */
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { render, screen, waitFor, fireEvent } from '@testing-library/react'
@@ -465,5 +466,57 @@ describe('B-031: 列・行フィルタ', () => {
     await user.click(screen.getByRole('button', { name: /行/ }))
     expect(screen.queryByLabelText('3')).not.toBeInTheDocument()
     expect(screen.getByLabelText('1')).toBeInTheDocument()
+  })
+})
+
+// ---------------------------------------------------------------------------
+// B-032: 詳細モーダルのサイズ固定とセル表示の統一
+// ---------------------------------------------------------------------------
+
+describe('B-032: 詳細モーダルのサイズ固定とセル表示の統一', () => {
+  it('2ファイル比較で Base と B の2セルが常に表示される', async () => {
+    const user = userEvent.setup()
+    const cells = [
+      makeCell({ cell: 'A1', status: 'new', base_value: null, b_value: '新値' }),
+    ]
+    render(<MemoryRouter><DiffGrid cells={cells} /></MemoryRouter>)
+    const td = document.querySelector('td[data-key="1-A"]') as HTMLElement
+    await user.click(td)
+
+    await waitFor(() => {
+      expect(screen.getByText('Base（比較元）')).toBeInTheDocument()
+      expect(screen.getByText('B（変更A）')).toBeInTheDocument()
+    })
+  })
+
+  it('base_value が null のとき「（空）」が表示される', async () => {
+    const user = userEvent.setup()
+    const cells = [
+      makeCell({ cell: 'A1', status: 'new', base_value: null, b_value: '新値' }),
+    ]
+    render(<MemoryRouter><DiffGrid cells={cells} /></MemoryRouter>)
+    const td = document.querySelector('td[data-key="1-A"]') as HTMLElement
+    await user.click(td)
+
+    await waitFor(() => {
+      expect(screen.getByText('（空）')).toBeInTheDocument()
+    })
+  })
+
+  it('モーダルのコンテンツエリアに固定高さが設定されている', async () => {
+    const user = userEvent.setup()
+    const cells = [
+      makeCell({ cell: 'A1', status: 'update', base_value: '旧値', b_value: '新値' }),
+    ]
+    render(<MemoryRouter><DiffGrid cells={cells} /></MemoryRouter>)
+    const td = document.querySelector('td[data-key="1-A"]') as HTMLElement
+    await user.click(td)
+
+    await waitFor(() => {
+      // モーダル本体に固定高さクラスが付いている
+      const modal = document.querySelector('[data-testid="cell-detail-modal"]')
+      expect(modal).toBeInTheDocument()
+      expect(modal?.className).toMatch(/h-/)
+    })
   })
 })
