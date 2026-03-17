@@ -4,23 +4,26 @@ import type { CellDiff } from "../types/diff";
 type Props = {
   cell: CellDiff;
   onClose: () => void;
+  hasFileC: boolean;
 };
 
 function ValueBox({ label, value, color }: { label: string; value: string | null; color: string }) {
-  if (value === null) return null;
   return (
-    <div className={`rounded border ${color} p-3 flex-1 min-w-0`}>
+    <div className={`rounded border ${color} p-3 flex-1 min-w-0 flex flex-col`}>
       <p className={`text-xs font-semibold mb-1 ${color.replace("border-", "text-").replace("-300", "-700")}`}>
         {label}
       </p>
-      <pre className="text-sm text-gray-800 whitespace-pre-wrap break-words font-sans leading-relaxed text-left">
-        {value || <span className="text-gray-400 italic">（空）</span>}
+      <pre className="text-sm text-gray-800 whitespace-pre-wrap break-words font-sans leading-relaxed text-left overflow-y-auto flex-1">
+        {value == null || value === ""
+          ? <span className="text-gray-400 italic">（空）</span>
+          : value
+        }
       </pre>
     </div>
   );
 }
 
-export default function CellDetailModal({ cell, onClose }: Props) {
+export default function CellDetailModal({ cell, onClose, hasFileC }: Props) {
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") onClose();
@@ -29,7 +32,6 @@ export default function CellDetailModal({ cell, onClose }: Props) {
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  const hasC = cell.c_value !== null;
 
   return (
     <div
@@ -37,7 +39,8 @@ export default function CellDetailModal({ cell, onClose }: Props) {
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-xl shadow-2xl w-full max-w-3xl mx-4 max-h-[80vh] flex flex-col"
+        data-testid="cell-detail-modal"
+        className="bg-white rounded-xl shadow-2xl w-full max-w-3xl mx-4 h-72 flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* ヘッダー */}
@@ -68,7 +71,7 @@ export default function CellDetailModal({ cell, onClose }: Props) {
         <div className="p-5 overflow-y-auto flex gap-3">
           <ValueBox label="Base（比較元）" value={cell.base_value} color="border-gray-300" />
           <ValueBox label="B（変更A）" value={cell.b_value} color="border-blue-300" />
-          {hasC && <ValueBox label="C（変更B）" value={cell.c_value} color="border-green-300" />}
+          {hasFileC && <ValueBox label="C（変更B）" value={cell.c_value} color="border-green-300" />}
         </div>
 
         {/* フッター */}

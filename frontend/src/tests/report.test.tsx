@@ -474,32 +474,36 @@ describe('B-031: 列・行フィルタ', () => {
 // ---------------------------------------------------------------------------
 
 describe('B-032: 詳細モーダルのサイズ固定とセル表示の統一', () => {
-  it('2ファイル比較で Base と B の2セルが常に表示される', async () => {
+  it('2ファイル比較で Base と B の2セルが常に表示される（base_value が null でも）', async () => {
     const user = userEvent.setup()
     const cells = [
       makeCell({ cell: 'A1', status: 'new', base_value: null, b_value: '新値' }),
     ]
-    render(<MemoryRouter><DiffGrid cells={cells} /></MemoryRouter>)
+    render(<MemoryRouter><DiffGrid cells={cells} hasFileC={false} /></MemoryRouter>)
     const td = document.querySelector('td[data-key="1-A"]') as HTMLElement
     await user.click(td)
 
     await waitFor(() => {
       expect(screen.getByText('Base（比較元）')).toBeInTheDocument()
       expect(screen.getByText('B（変更A）')).toBeInTheDocument()
+      expect(screen.queryByText('C（変更B）')).not.toBeInTheDocument()
+      expect(screen.getByText('（空）')).toBeInTheDocument()
     })
   })
 
-  it('base_value が null のとき「（空）」が表示される', async () => {
+  it('3ファイル比較では C 欄も常に表示される（c_value が null でも）', async () => {
     const user = userEvent.setup()
     const cells = [
-      makeCell({ cell: 'A1', status: 'new', base_value: null, b_value: '新値' }),
+      { ...makeCell({ cell: 'A1', status: 'update', b_value: '新値' }), c_value: null },
     ]
-    render(<MemoryRouter><DiffGrid cells={cells} /></MemoryRouter>)
+    render(<MemoryRouter><DiffGrid cells={cells} hasFileC={true} /></MemoryRouter>)
     const td = document.querySelector('td[data-key="1-A"]') as HTMLElement
     await user.click(td)
 
     await waitFor(() => {
-      expect(screen.getByText('（空）')).toBeInTheDocument()
+      expect(screen.getByText('Base（比較元）')).toBeInTheDocument()
+      expect(screen.getByText('B（変更A）')).toBeInTheDocument()
+      expect(screen.getByText('C（変更B）')).toBeInTheDocument()
     })
   })
 
@@ -508,12 +512,11 @@ describe('B-032: 詳細モーダルのサイズ固定とセル表示の統一', 
     const cells = [
       makeCell({ cell: 'A1', status: 'update', base_value: '旧値', b_value: '新値' }),
     ]
-    render(<MemoryRouter><DiffGrid cells={cells} /></MemoryRouter>)
+    render(<MemoryRouter><DiffGrid cells={cells} hasFileC={false} /></MemoryRouter>)
     const td = document.querySelector('td[data-key="1-A"]') as HTMLElement
     await user.click(td)
 
     await waitFor(() => {
-      // モーダル本体に固定高さクラスが付いている
       const modal = document.querySelector('[data-testid="cell-detail-modal"]')
       expect(modal).toBeInTheDocument()
       expect(modal?.className).toMatch(/h-/)

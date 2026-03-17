@@ -7,6 +7,8 @@ refs:
   - docs/requirements/frontend/REQ-005_report/behaviors/B-032.md
 files:
   - frontend/src/components/CellDetailModal.tsx
+  - frontend/src/components/DiffGrid.tsx
+  - frontend/src/pages/Report.tsx
   - frontend/src/tests/report.test.tsx
 ---
 
