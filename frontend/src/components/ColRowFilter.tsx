@@ -84,13 +84,17 @@ export default function ColRowFilter({ label, items, excluded, onChange }: Props
             <label
               key={item}
               className="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-50 cursor-pointer text-xs"
+              onClick={(e) => {
+                e.preventDefault();
+                toggle(item, index, e.shiftKey);
+              }}
             >
               <input
                 type="checkbox"
                 aria-label={item}
                 checked={!excluded.has(item)}
-                className="accent-blue-600"
-                onChange={(e) => toggle(item, index, (e.nativeEvent as MouseEvent).shiftKey)}
+                readOnly
+                className="accent-blue-600 pointer-events-none"
               />
               {item}
             </label>
