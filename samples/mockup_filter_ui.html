@@ -37,7 +37,7 @@
 
   <!-- 列フィルタドロップダウン -->
   <div class="relative" id="col-dropdown-wrap">
-    <button onclick="toggleDropdown('col')" class="px-3 py-1 rounded text-xs font-medium bg-white border border-gray-300 text-gray-600 hover:bg-gray-100 flex items-center gap-1">
+    <button onclick="toggleDropdown('col')" id="col-btn" class="px-3 py-1 rounded text-xs font-medium bg-white border border-gray-300 text-gray-600 hover:bg-gray-100 flex items-center gap-1">
       列 ▾
     </button>
     <div id="col-dropdown" class="hidden absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded shadow-lg z-50 min-w-[120px]">
@@ -57,7 +57,7 @@
 
   <!-- 行フィルタドロップダウン -->
   <div class="relative" id="row-dropdown-wrap">
-    <button onclick="toggleDropdown('row')" class="px-3 py-1 rounded text-xs font-medium bg-white border border-gray-300 text-gray-600 hover:bg-gray-100 flex items-center gap-1">
+    <button onclick="toggleDropdown('row')" id="row-btn" class="px-3 py-1 rounded text-xs font-medium bg-white border border-gray-300 text-gray-600 hover:bg-gray-100 flex items-center gap-1">
       行 ▾
     </button>
     <div id="row-dropdown" class="hidden absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded shadow-lg z-50 min-w-[120px]">
@@ -75,8 +75,6 @@
     </div>
   </div>
 
-  <!-- 除外中タグ（チェックを外したら出現するイメージ） -->
-  <div id="active-tags" class="flex items-center gap-1 flex-wrap"></div>
 
 </div>
 
@@ -144,35 +142,27 @@ function toggleDropdown(type) {
   }
 }
 
-// チェックボックス操作でタグを更新
+// チェックボックス操作でボタンの状態を更新
+function updateBtn(type) {
+  const excluded = [...document.querySelectorAll(`#${type}-dropdown input[type=checkbox]`)]
+    .filter(c => !c.checked).length
+  const btn = document.getElementById(`${type}-btn`)
+  const label = type === 'col' ? '列' : '行'
+  if (excluded > 0) {
+    btn.textContent = `${label} ${excluded}除外 ▾`
+    btn.className = 'px-3 py-1 rounded text-xs font-medium bg-orange-100 border border-orange-400 text-orange-700 hover:bg-orange-200 flex items-center gap-1'
+  } else {
+    btn.textContent = `${label} ▾`
+    btn.className = 'px-3 py-1 rounded text-xs font-medium bg-white border border-gray-300 text-gray-600 hover:bg-gray-100 flex items-center gap-1'
+  }
+}
+
 document.querySelectorAll('input[type=checkbox]').forEach(cb => {
   cb.addEventListener('change', () => {
-    const tags = document.getElementById('active-tags')
-    tags.innerHTML = ''
-    document.querySelectorAll('input[type=checkbox]').forEach(c => {
-      if (!c.checked) {
-        const label = c.parentElement.textContent.trim()
-        const isRow = c.closest('#row-dropdown') !== null
-        const tag = document.createElement('span')
-        tag.className = 'flex items-center gap-1 bg-orange-100 text-orange-700 text-xs px-2 py-0.5 rounded-full'
-        tag.innerHTML = `${isRow ? '行' : '列'}${label} <button onclick="recheck(this)" data-cb-label="${label}" data-type="${isRow ? 'row' : 'col'}" class="hover:text-orange-900">×</button>`
-        tags.appendChild(tag)
-      }
-    })
+    const type = cb.closest('#col-dropdown') ? 'col' : 'row'
+    updateBtn(type)
   })
 })
-
-function recheck(btn) {
-  const label = btn.dataset.cbLabel
-  const type = btn.dataset.type
-  const dropdown = document.getElementById(type + '-dropdown')
-  dropdown.querySelectorAll('input[type=checkbox]').forEach(c => {
-    if (c.parentElement.textContent.trim() === label) {
-      c.checked = true
-      c.dispatchEvent(new Event('change', { bubbles: true }))
-    }
-  })
-}
 
 document.addEventListener('click', e => {
   if (!e.target.closest('#col-dropdown-wrap') && !e.target.closest('#row-dropdown-wrap')) {
