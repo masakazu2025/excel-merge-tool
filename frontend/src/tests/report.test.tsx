@@ -271,8 +271,7 @@ describe('B-029: シート切り替え', () => {
     })
   })
 
-  it('差分のないシートでは「差分なし」が表示される', async () => {
-    const user = userEvent.setup()
+  it('差分のないシートのタブは表示されない', async () => {
     mockReport({
       Sheet1: { cells: [makeCell({ cell: 'A1', status: 'update' })] },
       Sheet2: { cells: [] },
@@ -280,12 +279,20 @@ describe('B-029: シート切り替え', () => {
     renderReport()
 
     await waitFor(() => {
-      expect(screen.getByText('Sheet2')).toBeInTheDocument()
+      expect(screen.getByText('Sheet1')).toBeInTheDocument()
     })
-    await user.click(screen.getByText('Sheet2'))
+    expect(screen.queryByText('Sheet2')).not.toBeInTheDocument()
+  })
+
+  it('全シートが差分なしの場合は「差分がありません」が表示される', async () => {
+    mockReport({
+      Sheet1: { cells: [] },
+      Sheet2: { cells: [] },
+    })
+    renderReport()
 
     await waitFor(() => {
-      expect(screen.getByText('差分なし')).toBeInTheDocument()
+      expect(screen.getByText('差分がありません')).toBeInTheDocument()
     })
   })
 })
