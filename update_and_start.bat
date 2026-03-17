@@ -14,3 +14,7 @@ if %errorlevel% neq 0 (
 echo.
 echo Starting application...
 call "%ROOT%\scripts\start_dev.bat"
+
+echo Waiting for frontend to start...
+timeout /t 5 /nobreak > nul
+start http://localhost:5173
