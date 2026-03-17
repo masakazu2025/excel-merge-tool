@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>フィルタUI モックアップ</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-white text-sm">
+
+<!-- ヘッダー（ダミー） -->
+<header class="bg-gray-900 text-white px-4 py-3 flex items-center gap-3">
+  <span class="text-gray-400 text-xs">← ホーム</span>
+  <span class="text-gray-600">|</span>
+  <span class="text-xs text-gray-300"><span class="text-yellow-400">base:</span> base.xlsx &ensp;<span class="text-blue-400">B:</span> file_b.xlsx</span>
+  <div class="ml-auto flex gap-2">
+    <span class="bg-gray-700 text-xs px-2 py-0.5 rounded">差分 8件</span>
+  </div>
+</header>
+
+<!-- シートタブ（ダミー） -->
+<div class="border-b border-gray-200 bg-white px-3 pt-1">
+  <div class="flex gap-1">
+    <button class="px-3 py-2 text-sm border-b-2 border-blue-600 text-blue-600 font-medium">Sheet1 <span class="ml-1 bg-gray-100 text-gray-500 text-xs px-1.5 py-0.5 rounded-full">8</span></button>
+    <button class="px-3 py-2 text-sm border-b-2 border-transparent text-gray-500">Sheet3 <span class="ml-1 bg-gray-100 text-gray-500 text-xs px-1.5 py-0.5 rounded-full">3</span></button>
+  </div>
+</div>
+
+<!-- フィルタバー -->
+<div class="flex items-center gap-2 px-4 py-2 border-b border-gray-200 bg-gray-50 flex-wrap">
+  <!-- 既存フィルタボタン -->
+  <button class="px-3 py-1 rounded text-xs font-medium bg-blue-600 text-white">すべて</button>
+  <button class="px-3 py-1 rounded text-xs font-medium bg-white border border-gray-300 text-gray-600 hover:bg-gray-100">⚠ 競合</button>
+  <button class="px-3 py-1 rounded text-xs font-medium bg-white border border-gray-300 text-gray-600 hover:bg-gray-100">B の変更</button>
+  <span class="text-xs text-gray-400">8件</span>
+
+  <div class="w-px h-4 bg-gray-300 mx-1"></div>
+
+  <!-- 列フィルタドロップダウン -->
+  <div class="relative" id="col-dropdown-wrap">
+    <button onclick="toggleDropdown('col')" class="px-3 py-1 rounded text-xs font-medium bg-white border border-gray-300 text-gray-600 hover:bg-gray-100 flex items-center gap-1">
+      列 ▾
+    </button>
+    <div id="col-dropdown" class="hidden absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded shadow-lg z-50 min-w-[120px]">
+      <div class="px-3 py-2 text-xs text-gray-500 border-b">表示する列</div>
+      <label class="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-50 cursor-pointer text-xs"><input type="checkbox" checked class="accent-blue-600"> A</label>
+      <label class="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-50 cursor-pointer text-xs"><input type="checkbox" checked class="accent-blue-600"> B</label>
+      <label class="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-50 cursor-pointer text-xs"><input type="checkbox" checked class="accent-blue-600"> C</label>
+      <label class="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-50 cursor-pointer text-xs"><input type="checkbox" checked class="accent-blue-600"> D</label>
+      <label class="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-50 cursor-pointer text-xs"><input type="checkbox" checked class="accent-blue-600"> E</label>
+    </div>
+  </div>
+
+  <!-- 行フィルタドロップダウン -->
+  <div class="relative" id="row-dropdown-wrap">
+    <button onclick="toggleDropdown('row')" class="px-3 py-1 rounded text-xs font-medium bg-white border border-gray-300 text-gray-600 hover:bg-gray-100 flex items-center gap-1">
+      行 ▾
+    </button>
+    <div id="row-dropdown" class="hidden absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded shadow-lg z-50 min-w-[120px]">
+      <div class="px-3 py-2 text-xs text-gray-500 border-b">表示する行</div>
+      <label class="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-50 cursor-pointer text-xs"><input type="checkbox" checked class="accent-blue-600"> 2</label>
+      <label class="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-50 cursor-pointer text-xs"><input type="checkbox" checked class="accent-blue-600"> 4</label>
+      <label class="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-50 cursor-pointer text-xs"><input type="checkbox" checked class="accent-blue-600"> 7</label>
+      <label class="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-50 cursor-pointer text-xs"><input type="checkbox" checked class="accent-blue-600"> 9</label>
+      <label class="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-50 cursor-pointer text-xs"><input type="checkbox" checked class="accent-blue-600"> 12</label>
+    </div>
+  </div>
+
+  <!-- 除外中タグ（チェックを外したら出現するイメージ） -->
+  <div id="active-tags" class="flex items-center gap-1 flex-wrap"></div>
+
+</div>
+
+<!-- グリッド（ダミー） -->
+<div class="p-4 overflow-auto">
+  <table class="border-collapse text-xs">
+    <thead>
+      <tr>
+        <th class="w-10 bg-gray-100 border border-gray-300 px-2 py-1 text-gray-500"></th>
+        <th class="bg-gray-100 border border-gray-300 px-4 py-1 text-gray-600 min-w-[80px]">A</th>
+        <th class="bg-gray-100 border border-gray-300 px-4 py-1 text-gray-600 min-w-[80px]">B</th>
+        <th class="bg-gray-100 border border-gray-300 px-4 py-1 text-gray-600 min-w-[80px]">D</th>
+        <th class="bg-gray-100 border border-gray-300 px-4 py-1 text-gray-600 min-w-[80px]">E</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="bg-gray-100 border border-gray-300 px-2 py-1 text-gray-500 text-center">2</td>
+        <td class="border border-gray-300 px-2 py-1 bg-yellow-100">修正値A</td>
+        <td class="border border-gray-300 px-2 py-1"></td>
+        <td class="border border-gray-300 px-2 py-1 bg-yellow-100">修正値D</td>
+        <td class="border border-gray-300 px-2 py-1"></td>
+      </tr>
+      <tr>
+        <td class="bg-gray-100 border border-gray-300 px-2 py-1 text-gray-500 text-center">4</td>
+        <td class="border border-gray-300 px-2 py-1"></td>
+        <td class="border border-gray-300 px-2 py-1 bg-green-100">新規B</td>
+        <td class="border border-gray-300 px-2 py-1"></td>
+        <td class="border border-gray-300 px-2 py-1 bg-yellow-100">修正値E</td>
+      </tr>
+      <tr>
+        <td class="bg-gray-100 border border-gray-300 px-2 py-1 text-gray-500 text-center">7</td>
+        <td class="border border-gray-300 px-2 py-1"></td>
+        <td class="border border-gray-300 px-2 py-1"></td>
+        <td class="border border-gray-300 px-2 py-1 bg-yellow-100">修正値D</td>
+        <td class="border border-gray-300 px-2 py-1"></td>
+      </tr>
+    </tbody>
+  </table>
+  <p class="text-xs text-gray-400 mt-3">※ D列のチェックを外すと → D列が消え、7行目（D列にしか差分がない）も消えるイメージ</p>
+</div>
+
+<script>
+function toggleDropdown(type) {
+  const col = document.getElementById('col-dropdown')
+  const row = document.getElementById('row-dropdown')
+  if (type === 'col') {
+    col.classList.toggle('hidden')
+    row.classList.add('hidden')
+  } else {
+    row.classList.toggle('hidden')
+    col.classList.add('hidden')
+  }
+}
+
+// チェックボックス操作でタグを更新
+document.querySelectorAll('input[type=checkbox]').forEach(cb => {
+  cb.addEventListener('change', () => {
+    const tags = document.getElementById('active-tags')
+    tags.innerHTML = ''
+    document.querySelectorAll('input[type=checkbox]').forEach(c => {
+      if (!c.checked) {
+        const label = c.parentElement.textContent.trim()
+        const isRow = c.closest('#row-dropdown') !== null
+        const tag = document.createElement('span')
+        tag.className = 'flex items-center gap-1 bg-orange-100 text-orange-700 text-xs px-2 py-0.5 rounded-full'
+        tag.innerHTML = `${isRow ? '行' : '列'}${label} <button onclick="recheck(this)" data-cb-label="${label}" data-type="${isRow ? 'row' : 'col'}" class="hover:text-orange-900">×</button>`
+        tags.appendChild(tag)
+      }
+    })
+  })
+})
+
+function recheck(btn) {
+  const label = btn.dataset.cbLabel
+  const type = btn.dataset.type
+  const dropdown = document.getElementById(type + '-dropdown')
+  dropdown.querySelectorAll('input[type=checkbox]').forEach(c => {
+    if (c.parentElement.textContent.trim() === label) {
+      c.checked = true
+      c.dispatchEvent(new Event('change', { bubbles: true }))
+    }
+  })
+}
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('#col-dropdown-wrap') && !e.target.closest('#row-dropdown-wrap')) {
+    document.getElementById('col-dropdown').classList.add('hidden')
+    document.getElementById('row-dropdown').classList.add('hidden')
+  }
+})
+</script>
+</body>
+</html>
