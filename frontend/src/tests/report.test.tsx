@@ -3,6 +3,7 @@
  * B-027: 変更のない行・列は非表示にする
  * B-028: モーダルを開いたままキーボードで差分セル間を移動できる
  * B-029: シートを切り替えられる
+ * B-031: 列・行フィルタで特定の列・行を除外できる
  */
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { render, screen, waitFor, fireEvent } from '@testing-library/react'
@@ -293,6 +294,156 @@ describe('B-029: シート切り替え', () => {
 
     await waitFor(() => {
       expect(screen.getByText('差分がありません')).toBeInTheDocument()
+    })
+  })
+})
+
+// ---------------------------------------------------------------------------
+// B-031: 列・行フィルタ
+// ---------------------------------------------------------------------------
+
+describe('B-031: 列・行フィルタ', () => {
+  it('「列 ▾」ボタンが表示される', async () => {
+    mockReport({
+      Sheet1: { cells: [makeCell({ cell: 'A1', status: 'update' })] },
+    })
+    renderReport()
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /列/ })).toBeInTheDocument()
+    })
+  })
+
+  it('「列 ▾」をクリックするとドロップダウンが開き差分のある列が表示される', async () => {
+    const user = userEvent.setup()
+    mockReport({
+      Sheet1: { cells: [
+        makeCell({ cell: 'A1', status: 'update' }),
+        makeCell({ cell: 'C2', status: 'new', base_value: null }),
+      ] },
+    })
+    renderReport()
+    await waitFor(() => expect(screen.getByRole('button', { name: /列/ })).toBeInTheDocument())
+
+    await user.click(screen.getByRole('button', { name: /列/ }))
+
+    expect(screen.getByLabelText('A')).toBeInTheDocument()
+    expect(screen.getByLabelText('C')).toBeInTheDocument()
+  })
+
+  it('列のチェックを外すとその列のセルが非表示になる', async () => {
+    const user = userEvent.setup()
+    mockReport({
+      Sheet1: { cells: [
+        makeCell({ cell: 'A1', status: 'update', b_value: 'A1値' }),
+        makeCell({ cell: 'C2', status: 'update', b_value: 'C2値' }),
+      ] },
+    })
+    renderReport()
+    await waitFor(() => expect(screen.getByText('A1値')).toBeInTheDocument())
+
+    await user.click(screen.getByRole('button', { name: /列/ }))
+    await user.click(screen.getByLabelText('A'))
+
+    await waitFor(() => {
+      expect(screen.queryByText('A1値')).not.toBeInTheDocument()
+      expect(screen.getByText('C2値')).toBeInTheDocument()
+    })
+  })
+
+  it('列を除外するとその列にしか差分がない行も非表示になる', async () => {
+    const user = userEvent.setup()
+    mockReport({
+      Sheet1: { cells: [
+        makeCell({ cell: 'A1', status: 'update', b_value: 'A1値' }),
+        makeCell({ cell: 'D3', status: 'update', b_value: 'D3値' }), // D列のみの行3
+      ] },
+    })
+    renderReport()
+    await waitFor(() => expect(screen.getByText('D3値')).toBeInTheDocument())
+
+    await user.click(screen.getByRole('button', { name: /列/ }))
+    await user.click(screen.getByLabelText('D'))
+
+    await waitFor(() => {
+      expect(screen.queryByText('D3値')).not.toBeInTheDocument()
+      // 行3の行番号も消えている
+      expect(screen.queryByText('3')).not.toBeInTheDocument()
+    })
+  })
+
+  it('除外中はボタンが「列 N除外」と表示されオレンジ色になる', async () => {
+    const user = userEvent.setup()
+    mockReport({
+      Sheet1: { cells: [
+        makeCell({ cell: 'A1', status: 'update' }),
+        makeCell({ cell: 'B1', status: 'update' }),
+      ] },
+    })
+    renderReport()
+    await waitFor(() => expect(screen.getByRole('button', { name: /列/ })).toBeInTheDocument())
+
+    await user.click(screen.getByRole('button', { name: /列/ }))
+    await user.click(screen.getByLabelText('A'))
+
+    await waitFor(() => {
+      const btn = screen.getByRole('button', { name: /1除外/ })
+      expect(btn).toBeInTheDocument()
+      expect(btn.className).toContain('bg-orange')
+    })
+  })
+
+  it('「すべて解除」で除外がリセットされボタンが通常に戻る', async () => {
+    const user = userEvent.setup()
+    mockReport({
+      Sheet1: { cells: [
+        makeCell({ cell: 'A1', status: 'update', b_value: 'A1値' }),
+        makeCell({ cell: 'B1', status: 'update', b_value: 'B1値' }),
+      ] },
+    })
+    renderReport()
+    await waitFor(() => expect(screen.getByText('A1値')).toBeInTheDocument())
+
+    // A列を除外
+    await user.click(screen.getByRole('button', { name: /列/ }))
+    await user.click(screen.getByLabelText('A'))
+    await waitFor(() => expect(screen.queryByText('A1値')).not.toBeInTheDocument())
+
+    // すべて解除
+    await user.click(screen.getByRole('button', { name: /1除外/ }))
+    await user.click(screen.getByRole('button', { name: 'すべて選択' }))
+
+    await waitFor(() => {
+      expect(screen.getByText('A1値')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /^列/ })).not.toHaveClass('bg-orange-100')
+    })
+  })
+
+  it('シート切り替えでそのシートのフィルタは保持される', async () => {
+    const user = userEvent.setup()
+    mockReport({
+      Sheet1: { cells: [
+        makeCell({ cell: 'A1', status: 'update', b_value: 'A1値' }),
+        makeCell({ cell: 'B1', status: 'update', b_value: 'B1値' }),
+      ] },
+      Sheet2: { cells: [makeCell({ cell: 'C1', status: 'update', b_value: 'C1値' })] },
+    })
+    renderReport()
+    await waitFor(() => expect(screen.getByText('A1値')).toBeInTheDocument())
+
+    // Sheet1 で A列を除外
+    await user.click(screen.getByRole('button', { name: /列/ }))
+    await user.click(screen.getByLabelText('A'))
+    await waitFor(() => expect(screen.queryByText('A1値')).not.toBeInTheDocument())
+
+    // Sheet2 に切り替え
+    await user.click(screen.getByText('Sheet2'))
+    await waitFor(() => expect(screen.getByText('C1値')).toBeInTheDocument())
+
+    // Sheet1 に戻ると除外が維持されている
+    await user.click(screen.getByText('Sheet1'))
+    await waitFor(() => {
+      expect(screen.queryByText('A1値')).not.toBeInTheDocument()
+      expect(screen.getByText('B1値')).toBeInTheDocument()
     })
   })
 })

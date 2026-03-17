@@ -1,10 +1,14 @@
 ---
 id: TASK-035
 title: 列・行フィルタUIの追加
-type: design
-status: draft
-refs: []
-files: []
+type: impl
+status: ready
+refs:
+  - docs/requirements/frontend/REQ-005_report/behaviors/B-031.md
+files:
+  - frontend/src/pages/Report.tsx
+  - frontend/src/components/ColRowFilter.tsx
+  - frontend/src/tests/report.test.tsx
 ---
 
 ## 背景
