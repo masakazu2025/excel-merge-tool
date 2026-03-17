@@ -9,7 +9,7 @@ type Props = {
 
 function ValueBox({ label, value, color }: { label: string; value: string | null; color: string }) {
   return (
-    <div className={`rounded border ${color} p-3 flex-1 min-w-0 flex flex-col min-h-0`}>
+    <div className={`rounded border ${color} p-3 w-[280px] flex-shrink-0 flex flex-col min-h-0`}>
       <p className={`text-xs font-semibold mb-1 ${color.replace("border-", "text-").replace("-300", "-700")}`}>
         {label}
       </p>
@@ -40,7 +40,7 @@ export default function CellDetailModal({ cell, onClose, hasFileC }: Props) {
     >
       <div
         data-testid="cell-detail-modal"
-        className="bg-white rounded-xl shadow-2xl w-full max-w-3xl mx-4 h-[36rem] flex flex-col"
+        className={`bg-white rounded-xl shadow-2xl w-full mx-4 h-[36rem] flex flex-col ${hasFileC ? "max-w-[960px]" : "max-w-[660px]"}`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* ヘッダー */}
