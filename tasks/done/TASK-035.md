@@ -2,7 +2,7 @@
 id: TASK-035
 title: 列・行フィルタUIの追加
 type: impl
-status: ready
+status: done
 refs:
   - docs/requirements/frontend/REQ-005_report/behaviors/B-031.md
 files:
