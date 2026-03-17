@@ -408,8 +408,7 @@ describe('B-031: 列・行フィルタ', () => {
     await user.click(screen.getByLabelText('A'))
     await waitFor(() => expect(screen.queryByText('A1値')).not.toBeInTheDocument())
 
-    // すべて解除
-    await user.click(screen.getByRole('button', { name: /1除外/ }))
+    // ドロップダウンは開いたままなので「すべて選択」をそのままクリック
     await user.click(screen.getByRole('button', { name: 'すべて選択' }))
 
     await waitFor(() => {

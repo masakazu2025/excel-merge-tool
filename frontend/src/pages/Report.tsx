@@ -3,7 +3,13 @@ import { useNavigate, useParams } from "react-router-dom";
 import SheetTabs from "../components/SheetTabs";
 import ShapesSection from "../components/ShapesSection";
 import DiffGrid from "../components/DiffGrid";
+import ColRowFilter from "../components/ColRowFilter";
 import type { DiffReport, CellDiff } from "../types/diff";
+
+interface ColRowFilterState {
+  excludedCols: Set<string>;
+  excludedRows: Set<string>;
+}
 
 export type FilterType = "all" | "conflict" | "b" | "c";
 
@@ -21,6 +27,7 @@ export default function Report() {
   const [activeSheet, setActiveSheet] = useState("");
   const [filter, setFilter] = useState<FilterType>("all");
   const [error, setError] = useState("");
+  const [colRowFilters, setColRowFilters] = useState<Record<string, ColRowFilterState>>({});
 
   useEffect(() => {
     if (!reportId) return;
@@ -99,12 +106,39 @@ export default function Report() {
     ...(sheetData?.comments ?? []),
   ];
 
-  const filteredCells = allCells.filter((c) => {
+  // 列・行フィルタ
+  const sheetFilter = colRowFilters[activeSheet] ?? { excludedCols: new Set(), excludedRows: new Set() };
+
+  // 差分セルから列・行の一覧を導出
+  const allCols = [...new Set(allCells.map((c) => c.cell.match(/^([A-Z]+)/)?.[1] ?? "").filter(Boolean))].sort();
+  const allRows = [...new Set(allCells.map((c) => c.cell.match(/(\d+)$/)?.[1] ?? "").filter(Boolean))].sort((a, b) => Number(a) - Number(b));
+
+  const colRowFilteredCells = allCells.filter((c) => {
+    const col = c.cell.match(/^([A-Z]+)/)?.[1] ?? "";
+    const row = c.cell.match(/(\d+)$/)?.[1] ?? "";
+    return !sheetFilter.excludedCols.has(col) && !sheetFilter.excludedRows.has(row);
+  });
+
+  const filteredCells = colRowFilteredCells.filter((c) => {
     if (filter === "conflict") return c.status === "conflict";
     if (filter === "b")        return c.changed_by === "b" || c.changed_by === "both";
     if (filter === "c")        return c.changed_by === "c" || c.changed_by === "both";
     return true;
   });
+
+  function updateColFilter(excludedCols: Set<string>) {
+    setColRowFilters((prev) => ({
+      ...prev,
+      [activeSheet]: { ...sheetFilter, excludedCols },
+    }));
+  }
+
+  function updateRowFilter(excludedRows: Set<string>) {
+    setColRowFilters((prev) => ({
+      ...prev,
+      [activeSheet]: { ...sheetFilter, excludedRows },
+    }));
+  }
 
   return (
     <div className="min-h-screen bg-white flex flex-col text-sm">
@@ -150,6 +184,20 @@ export default function Report() {
           </button>
         ))}
         <span className="ml-2 text-xs text-gray-400">{filteredCells.length}件</span>
+
+        <div className="w-px h-4 bg-gray-300 mx-1" />
+        <ColRowFilter
+          label="列"
+          items={allCols}
+          excluded={sheetFilter.excludedCols}
+          onChange={updateColFilter}
+        />
+        <ColRowFilter
+          label="行"
+          items={allRows}
+          excluded={sheetFilter.excludedRows}
+          onChange={updateRowFilter}
+        />
 
         {/* 凡例 */}
         <div className="ml-auto flex items-center gap-3 text-xs text-gray-500">
