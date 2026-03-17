@@ -84,6 +84,7 @@ export default function ColRowFilter({ label, items, excluded, onChange }: Props
             <label
               key={item}
               className="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-50 cursor-pointer text-xs"
+              onMouseDown={(e) => e.preventDefault()}
               onClick={(e) => {
                 e.preventDefault();
                 toggle(item, index, e.shiftKey);
