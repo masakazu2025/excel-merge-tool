@@ -48,7 +48,10 @@ export default function Report() {
           throw new Error("レポートの形式が正しくありません");
         }
         setReport(data);
-        setActiveSheet(Object.keys(data.sheets)[0] ?? "");
+        const firstWithDiff = Object.entries(data.sheets).find(
+          ([, s]) => (s.cells?.length ?? 0) + (s.comments?.length ?? 0) > 0
+        );
+        setActiveSheet(firstWithDiff ? firstWithDiff[0] : "");
       } catch (e: unknown) {
         setError(e instanceof Error ? e.message : "エラーが発生しました");
       }
@@ -72,6 +75,20 @@ export default function Report() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <p className="text-gray-500">読み込み中...</p>
+      </div>
+    );
+  }
+
+  const visibleSheets = Object.fromEntries(
+    Object.entries(report.sheets).filter(
+      ([, s]) => (s.cells?.length ?? 0) + (s.comments?.length ?? 0) > 0
+    )
+  );
+
+  if (Object.keys(visibleSheets).length === 0) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <p className="text-gray-500">差分がありません</p>
       </div>
     );
   }
@@ -112,7 +129,7 @@ export default function Report() {
 
       {/* シートタブ */}
       <SheetTabs
-        sheets={report.sheets}
+        sheets={visibleSheets}
         activeSheet={activeSheet}
         onSelect={(name) => { setActiveSheet(name); setFilter("all"); }}
       />

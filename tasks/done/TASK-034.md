@@ -2,10 +2,11 @@
 id: TASK-034
 title: 差分なしシートを非表示にする
 type: impl
-status: draft
+status: done
 refs: []
 files:
   - frontend/src/pages/Report.tsx
+  - frontend/src/tests/report.test.tsx
 ---
 
 ## やること
