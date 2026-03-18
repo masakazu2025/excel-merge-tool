@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import type { ReportSummary } from "../types/diff";
 
 const LIMIT_OPTIONS = [10, 25, 50];
+const COL_COUNT = 4;
 
 type PagedResponse = {
   items: ReportSummary[];
@@ -23,6 +24,8 @@ export default function History() {
   const [limit, setLimit] = useState(25);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [cursorRow, setCursorRow] = useState(0);
+  const [cursorCol, setCursorCol] = useState(0);
 
   useEffect(() => {
     setLoading(true);
@@ -42,6 +45,8 @@ export default function History() {
         const data: PagedResponse = await res.json();
         setReports(data.items ?? []);
         setTotal(data.total ?? 0);
+        setCursorRow(0);
+        setCursorCol(0);
       } catch (e: unknown) {
         setError(e instanceof Error ? e.message : "エラーが発生しました");
       } finally {
@@ -50,11 +55,50 @@ export default function History() {
     })();
   }, [page, limit]);
 
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent) => {
+      if (reports.length === 0) return;
+      switch (e.key) {
+        case "ArrowUp":
+          e.preventDefault();
+          setCursorRow((r) => Math.max(0, r - 1));
+          break;
+        case "ArrowDown":
+          e.preventDefault();
+          setCursorRow((r) => Math.min(reports.length - 1, r + 1));
+          break;
+        case "ArrowLeft":
+          e.preventDefault();
+          setCursorCol((c) => Math.max(0, c - 1));
+          break;
+        case "ArrowRight":
+          e.preventDefault();
+          setCursorCol((c) => Math.min(COL_COUNT - 1, c + 1));
+          break;
+        case "Enter":
+          e.preventDefault();
+          navigate(`/report/${reports[cursorRow].report_id}`);
+          break;
+      }
+    },
+    [reports, cursorRow, navigate]
+  );
+
+  useEffect(() => {
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [handleKeyDown]);
+
   const totalPages = Math.ceil(total / limit);
 
   function handleLimitChange(newLimit: number) {
     setLimit(newLimit);
     setPage(1);
+  }
+
+  function tdClass(rowIdx: number, colIdx: number) {
+    const focused = rowIdx === cursorRow && colIdx === cursorCol;
+    return focused ? "ring-2 ring-inset ring-blue-500" : "";
   }
 
   return (
@@ -79,25 +123,42 @@ export default function History() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {reports.map((r) => (
+                {reports.map((r, rowIdx) => (
                   <tr
                     key={r.report_id}
                     onClick={() => navigate(`/report/${r.report_id}`)}
                     className="hover:bg-blue-50 cursor-pointer transition-colors"
                   >
-                    <td className="px-4 py-3 text-gray-700 whitespace-nowrap">
+                    <td
+                      data-row={rowIdx} data-col={0}
+                      data-focused={rowIdx === cursorRow && 0 === cursorCol ? "true" : undefined}
+                      className={`px-4 py-3 text-gray-700 whitespace-nowrap ${tdClass(rowIdx, 0)}`}
+                    >
                       {formatDate(r.created_at)}
                     </td>
-                    <td className="px-4 py-3 text-gray-700 max-w-[160px] truncate" title={r.base_file}>
+                    <td
+                      data-row={rowIdx} data-col={1}
+                      data-focused={rowIdx === cursorRow && 1 === cursorCol ? "true" : undefined}
+                      className={`px-4 py-3 text-gray-700 max-w-[160px] truncate ${tdClass(rowIdx, 1)}`}
+                      title={r.base_file}
+                    >
                       {r.base_file}
                     </td>
-                    <td className="px-4 py-3 text-gray-700">
+                    <td
+                      data-row={rowIdx} data-col={2}
+                      data-focused={rowIdx === cursorRow && 2 === cursorCol ? "true" : undefined}
+                      className={`px-4 py-3 text-gray-700 ${tdClass(rowIdx, 2)}`}
+                    >
                       <div className="max-w-[200px]">
                         <p className="truncate" title={r.file_b}>{r.file_b}</p>
                         {r.file_c && <p className="truncate text-gray-500" title={r.file_c}>{r.file_c}</p>}
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-right">
+                    <td
+                      data-row={rowIdx} data-col={3}
+                      data-focused={rowIdx === cursorRow && 3 === cursorCol ? "true" : undefined}
+                      className={`px-4 py-3 text-right ${tdClass(rowIdx, 3)}`}
+                    >
                       <span className="bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded">
                         {r.total_diffs}件
                       </span>
