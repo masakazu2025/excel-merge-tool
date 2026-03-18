@@ -5,6 +5,7 @@
  * B-029: シートを切り替えられる
  * B-031: 列・行フィルタで特定の列・行を除外できる
  * B-032: 詳細モーダルのサイズ固定とセル表示の統一
+ * B-033: グリッドエリアの全画面化とスクロールバー常時表示
  */
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { render, screen, waitFor, fireEvent } from '@testing-library/react'
@@ -505,6 +506,16 @@ describe('B-032: 詳細モーダルのサイズ固定とセル表示の統一', 
       expect(screen.getByText('B（変更A）')).toBeInTheDocument()
       expect(screen.getByText('C（変更B）')).toBeInTheDocument()
     })
+  })
+
+  // B-033
+  it('DiffGrid に overflow-scroll と h-full w-full が設定されている', () => {
+    const cells = [makeCell({ cell: 'A1', status: 'update', b_value: '新値' })]
+    render(<MemoryRouter><DiffGrid cells={cells} /></MemoryRouter>)
+    const grid = document.querySelector('[data-testid="diff-grid"]') as HTMLElement
+    expect(grid?.className).toMatch(/overflow-scroll/)
+    expect(grid?.className).toMatch(/h-full/)
+    expect(grid?.className).toMatch(/w-full/)
   })
 
   it('モーダルのコンテンツエリアに固定高さが設定されている', async () => {

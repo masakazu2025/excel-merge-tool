@@ -155,7 +155,7 @@ export default function Report() {
   }
 
   return (
-    <div className="min-h-screen bg-white flex flex-col text-sm">
+    <div className="h-screen bg-white flex flex-col text-sm overflow-hidden">
       {/* ヘッダー */}
       <header className="bg-gray-900 text-white px-4 py-3 flex items-center gap-3 flex-wrap sticky top-0 z-20">
         <button onClick={() => navigate("/")} className="text-gray-400 hover:text-white text-xs">
@@ -225,7 +225,7 @@ export default function Report() {
       </div>
 
       {/* グリッド */}
-      <div className="flex-1 p-4 overflow-auto">
+      <div className="flex-1 overflow-hidden min-h-0">
         <DiffGrid cells={filteredCells} hasFileC={!!report.meta.file_c} />
         {sheetData?.shapes && <ShapesSection shapes={sheetData.shapes} />}
       </div>
