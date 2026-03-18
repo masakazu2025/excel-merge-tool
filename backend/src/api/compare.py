@@ -49,6 +49,7 @@ async def compare(
         report_id = datetime.now().strftime("%Y%m%d_%H%M%S")
         output_path = OUTPUT_DIR / f"{report_id}_diff.json"
         output_path.write_text(json.dumps(diff, ensure_ascii=False), encoding="utf-8")
+        (OUTPUT_DIR / f"{report_id}_base.xlsx").write_bytes(base_bytes)
     except Exception as e:
         logger.error("レポート保存失敗: %s", e)
         raise HTTPException(status_code=422, detail={"error_code": "E005", "message": "比較処理中にエラーが発生しました"})

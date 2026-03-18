@@ -8,6 +8,7 @@
  * B-033: グリッドエリアの全画面化とスクロールバー常時表示
  * B-034: フィルタ操作強化（ダブルクリック除外・一括解除・スクロール・検索）
  * B-035: Ctrl+ホイールでグリッドをズームできる
+ * B-037: 列名・行名の表示設定
  */
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { render, screen, waitFor, fireEvent } from '@testing-library/react'
@@ -655,5 +656,160 @@ describe('B-032: 詳細モーダルのサイズ固定とセル表示の統一', 
       }
       expect(screen.getByText('50%')).toBeInTheDocument()
     })
+  })
+})
+
+// ---------------------------------------------------------------------------
+// B-037: 列名・行名の表示設定
+// ---------------------------------------------------------------------------
+
+describe('B-037: 列名・行名の表示設定', () => {
+  it('「⚙ 表示設定」ボタンが表示される', () => {
+    const cells = [makeCell({ cell: 'A1', status: 'update' })]
+    render(<MemoryRouter><DiffGrid cells={cells} reportId="test-report" sheetKey="Sheet1" /></MemoryRouter>)
+    expect(screen.getByRole('button', { name: /表示設定/ })).toBeInTheDocument()
+  })
+
+  it('「⚙ 表示設定」ボタンをクリックするとポップアップが表示される', async () => {
+    const user = userEvent.setup()
+    const cells = [makeCell({ cell: 'A1', status: 'update' })]
+    render(<MemoryRouter><DiffGrid cells={cells} reportId="test-report" sheetKey="Sheet1" /></MemoryRouter>)
+    await user.click(screen.getByRole('button', { name: /表示設定/ }))
+    expect(screen.getByLabelText(/列名に使う行番号/)).toBeInTheDocument()
+    expect(screen.getByLabelText(/行名に使う列番号/)).toBeInTheDocument()
+  })
+
+  it('列名の行番号を入力して適用するとAPIを呼び出し名称行が挿入される', async () => {
+    const user = userEvent.setup()
+    const cells = [
+      makeCell({ cell: 'A2', status: 'update', b_value: 'A2値' }),
+      makeCell({ cell: 'B2', status: 'update', b_value: 'B2値' }),
+    ]
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify({ A: '商品名', B: '単価' }), { status: 200 })
+    )
+    render(<MemoryRouter><DiffGrid cells={cells} reportId="test-report" sheetKey="Sheet1" /></MemoryRouter>)
+    await user.click(screen.getByRole('button', { name: /表示設定/ }))
+    await user.type(screen.getByLabelText(/列名に使う行番号/), '1')
+    await user.click(screen.getByRole('button', { name: '適用' }))
+    await waitFor(() => {
+      expect(screen.getByText('商品名')).toBeInTheDocument()
+      expect(screen.getByText('単価')).toBeInTheDocument()
+    })
+  })
+
+  it('行名の列番号を入力して適用するとAPIを呼び出し名称列が挿入される', async () => {
+    const user = userEvent.setup()
+    const cells = [makeCell({ cell: 'B2', status: 'update', b_value: 'B2値' })]
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify({ '2': 'りんご' }), { status: 200 })
+    )
+    render(<MemoryRouter><DiffGrid cells={cells} reportId="test-report" sheetKey="Sheet1" /></MemoryRouter>)
+    await user.click(screen.getByRole('button', { name: /表示設定/ }))
+    await user.type(screen.getByLabelText(/行名に使う列番号/), 'A')
+    await user.click(screen.getByRole('button', { name: '適用' }))
+    await waitFor(() => {
+      expect(screen.getByText('りんご')).toBeInTheDocument()
+    })
+  })
+
+  it('「クリア」ボタンで名称表示が解除される', async () => {
+    const user = userEvent.setup()
+    const cells = [makeCell({ cell: 'A2', status: 'update', b_value: 'A2値' })]
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify({ A: '商品名' }), { status: 200 })
+    )
+    render(<MemoryRouter><DiffGrid cells={cells} reportId="test-report" sheetKey="Sheet1" /></MemoryRouter>)
+    await user.click(screen.getByRole('button', { name: /表示設定/ }))
+    await user.type(screen.getByLabelText(/列名に使う行番号/), '1')
+    await user.click(screen.getByRole('button', { name: '適用' }))
+    await waitFor(() => expect(screen.getByText('商品名')).toBeInTheDocument())
+
+    // ポップアップを再度開いてクリア
+    await user.click(screen.getByRole('button', { name: /表示設定/ }))
+    await user.click(screen.getByRole('button', { name: 'クリア' }))
+    await waitFor(() => expect(screen.queryByText('商品名')).not.toBeInTheDocument())
+  })
+
+  it('行番号にアルファベットを入力するとエラーメッセージが表示され適用できない', async () => {
+    const user = userEvent.setup()
+    const cells = [makeCell({ cell: 'A1', status: 'update' })]
+    render(<MemoryRouter><DiffGrid cells={cells} reportId="test-report" sheetKey="Sheet1" /></MemoryRouter>)
+    await user.click(screen.getByRole('button', { name: /表示設定/ }))
+    await user.type(screen.getByLabelText(/列名に使う行番号/), 'A')
+    expect(screen.getByRole('button', { name: '適用' })).toBeDisabled()
+    expect(screen.getByText(/半角数字/)).toBeInTheDocument()
+  })
+
+  it('列番号に数字を入力するとエラーメッセージが表示され適用できない', async () => {
+    const user = userEvent.setup()
+    const cells = [makeCell({ cell: 'A1', status: 'update' })]
+    render(<MemoryRouter><DiffGrid cells={cells} reportId="test-report" sheetKey="Sheet1" /></MemoryRouter>)
+    await user.click(screen.getByRole('button', { name: /表示設定/ }))
+    await user.type(screen.getByLabelText(/行名に使う列番号/), '1')
+    expect(screen.getByRole('button', { name: '適用' })).toBeDisabled()
+    expect(screen.getByText(/アルファベット/)).toBeInTheDocument()
+  })
+
+  it('正しい入力では適用ボタンが有効', async () => {
+    const user = userEvent.setup()
+    const cells = [makeCell({ cell: 'A1', status: 'update' })]
+    render(<MemoryRouter><DiffGrid cells={cells} reportId="test-report" sheetKey="Sheet1" /></MemoryRouter>)
+    await user.click(screen.getByRole('button', { name: /表示設定/ }))
+    await user.type(screen.getByLabelText(/列名に使う行番号/), '1')
+    await user.type(screen.getByLabelText(/行名に使う列番号/), 'A')
+    expect(screen.getByRole('button', { name: '適用' })).not.toBeDisabled()
+  })
+
+  it('列名と行名を設定後、行名入力を空にして適用すると行名が消える', async () => {
+    const user = userEvent.setup()
+    const cells = [makeCell({ cell: 'B2', status: 'update', b_value: 'B2値' })]
+    vi.spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(JSON.stringify({ B: '商品名' }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ '2': 'りんご' }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ B: '商品名' }), { status: 200 })) // 2回目の適用（行名入力なし）
+    render(<MemoryRouter><DiffGrid cells={cells} reportId="test-report" sheetKey="Sheet1" /></MemoryRouter>)
+
+    // 両方設定
+    await user.click(screen.getByRole('button', { name: /表示設定/ }))
+    await user.type(screen.getByLabelText(/列名に使う行番号/), '1')
+    await user.type(screen.getByLabelText(/行名に使う列番号/), 'A')
+    await user.click(screen.getByRole('button', { name: '適用' }))
+    await waitFor(() => {
+      expect(screen.getByText('商品名')).toBeInTheDocument()
+      expect(screen.getByText('りんご')).toBeInTheDocument()
+    })
+
+    // 行名入力だけ消して再適用
+    await user.click(screen.getByRole('button', { name: /表示設定/ }))
+    const rowColInput = screen.getByLabelText(/行名に使う列番号/)
+    await user.clear(rowColInput)
+    await user.click(screen.getByRole('button', { name: '適用' }))
+    await waitFor(() => {
+      expect(screen.queryByText('りんご')).not.toBeInTheDocument()
+      // 列名は残っている
+      expect(screen.getByText('商品名')).toBeInTheDocument()
+    })
+  })
+
+  it('シートを切り替えると設定がリセットされる', async () => {
+    const user = userEvent.setup()
+    const cells = [makeCell({ cell: 'A2', status: 'update', b_value: 'A2値' })]
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify({ A: '商品名' }), { status: 200 })
+    )
+    const { rerender } = render(
+      <MemoryRouter><DiffGrid cells={cells} reportId="test-report" sheetKey="Sheet1" /></MemoryRouter>
+    )
+    await user.click(screen.getByRole('button', { name: /表示設定/ }))
+    await user.type(screen.getByLabelText(/列名に使う行番号/), '1')
+    await user.click(screen.getByRole('button', { name: '適用' }))
+    await waitFor(() => expect(screen.getByText('商品名')).toBeInTheDocument())
+
+    // シートを切り替え（sheetKey を変更）
+    rerender(
+      <MemoryRouter><DiffGrid cells={cells} reportId="test-report" sheetKey="Sheet2" /></MemoryRouter>
+    )
+    await waitFor(() => expect(screen.queryByText('商品名')).not.toBeInTheDocument())
   })
 })

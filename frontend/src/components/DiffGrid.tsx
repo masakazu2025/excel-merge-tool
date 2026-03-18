@@ -7,6 +7,7 @@ type Props = {
   cells: CellDiff[];
   hasFileC?: boolean;
   sheetKey?: string;
+  reportId?: string;
 };
 
 // "B4" → { col: "B", row: 4 }
@@ -39,7 +40,7 @@ function displayValue(diff: CellDiff): string {
   return diff.b_value ?? diff.base_value ?? "";
 }
 
-export default function DiffGrid({ cells, hasFileC = false, sheetKey }: Props) {
+export default function DiffGrid({ cells, hasFileC = false, sheetKey, reportId }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [focusedId, setFocusedId] = useState<string | null>(null);
   const [modalCell, setModalCell] = useState<CellDiff | null>(null);
@@ -64,6 +65,53 @@ export default function DiffGrid({ cells, hasFileC = false, sheetKey }: Props) {
     el.addEventListener("wheel", handler, { passive: false });
     return () => el.removeEventListener("wheel", handler);
   }, []);
+
+  // 表示設定（列名・行名）
+  const [showSettings, setShowSettings] = useState(false);
+  const [settingsRowInput, setSettingsRowInput] = useState("");
+  const [settingsColInput, setSettingsColInput] = useState("");
+  const [colLabels, setColLabels] = useState<Record<string, string>>({});
+  const [rowLabels, setRowLabels] = useState<Record<string, string>>({});
+
+  const rowInputError = settingsRowInput.trim() !== "" && !/^\d+$/.test(settingsRowInput.trim())
+    ? "半角数字で入力してください（例: 1）" : "";
+  const colInputError = settingsColInput.trim() !== "" && !/^[A-Za-z]+$/.test(settingsColInput.trim())
+    ? "アルファベットで入力してください（例: A）" : "";
+  const hasInputError = rowInputError !== "" || colInputError !== "";
+
+  // シート切り替えで表示設定をリセット
+  useEffect(() => {
+    setColLabels({});
+    setRowLabels({});
+    setSettingsRowInput("");
+    setSettingsColInput("");
+    setShowSettings(false);
+  }, [sheetKey]);
+
+  async function applySettings() {
+    if (!reportId || !sheetKey) { setShowSettings(false); return; }
+    if (settingsRowInput.trim()) {
+      const res = await fetch(`/api/reports/${reportId}/cell-range?sheet=${encodeURIComponent(sheetKey)}&row=${settingsRowInput.trim()}`);
+      if (res.ok) setColLabels(await res.json());
+    } else {
+      setColLabels({});
+    }
+    if (settingsColInput.trim()) {
+      const res = await fetch(`/api/reports/${reportId}/cell-range?sheet=${encodeURIComponent(sheetKey)}&col=${settingsColInput.trim()}`);
+      if (res.ok) setRowLabels(await res.json());
+    } else {
+      setRowLabels({});
+    }
+    setShowSettings(false);
+  }
+
+  function clearSettings() {
+    setColLabels({});
+    setRowLabels({});
+    setSettingsRowInput("");
+    setSettingsColInput("");
+    setShowSettings(false);
+  }
 
   // 自前ダブルクリック検出（ブラウザの onDoubleClick より確実）
   const lastClickRef = useRef<{ key: string; time: number } | null>(null);
@@ -230,7 +278,7 @@ export default function DiffGrid({ cells, hasFileC = false, sheetKey }: Props) {
     {modalCell && <CellDetailModal cell={modalCell} onClose={() => setModalCell(null)} hasFileC={hasFileC} />}
     <div className="flex flex-col h-full w-full">
       {/* Col/Row フィルタバー */}
-      <div className="flex items-center gap-2 px-2 py-1 border-b border-gray-200 bg-gray-50 shrink-0">
+      <div className="relative flex items-center gap-2 px-2 py-1 border-b border-gray-200 bg-gray-50 shrink-0">
         <ColRowFilter
           label="列"
           items={colsForDropdown}
@@ -251,6 +299,14 @@ export default function DiffGrid({ cells, hasFileC = false, sheetKey }: Props) {
             すべて解除
           </button>
         )}
+        {reportId && (
+          <button
+            onClick={() => setShowSettings((v) => !v)}
+            className="px-2 py-1 rounded text-xs bg-white border border-gray-300 text-gray-600 hover:bg-gray-100"
+          >
+            ⚙ 表示設定
+          </button>
+        )}
         {zoom < MAX_ZOOM && (
           <button
             onClick={() => setZoom(100)}
@@ -260,6 +316,50 @@ export default function DiffGrid({ cells, hasFileC = false, sheetKey }: Props) {
           </button>
         )}
       </div>
+      {/* 表示設定ポップアップ */}
+      {showSettings && (
+        <div className="absolute z-30 mt-1 ml-2 bg-white border border-gray-300 rounded shadow-lg p-3 text-xs w-64">
+          <div className="mb-2">
+            <label htmlFor="settings-col-row" className="block text-gray-600 mb-1">列名に使う行番号</label>
+            <input
+              id="settings-col-row"
+              type="text"
+              value={settingsRowInput}
+              onChange={(e) => setSettingsRowInput(e.target.value)}
+              placeholder="例: 1"
+              className={`w-full border rounded px-2 py-1 text-gray-800 bg-white ${rowInputError ? "border-red-400" : "border-gray-300"}`}
+            />
+            {rowInputError && <p className="text-red-500 text-xs mt-1">{rowInputError}</p>}
+          </div>
+          <div className="mb-3">
+            <label htmlFor="settings-row-col" className="block text-gray-600 mb-1">行名に使う列番号</label>
+            <input
+              id="settings-row-col"
+              type="text"
+              value={settingsColInput}
+              onChange={(e) => setSettingsColInput(e.target.value)}
+              placeholder="例: A"
+              className={`w-full border rounded px-2 py-1 text-gray-800 bg-white ${colInputError ? "border-red-400" : "border-gray-300"}`}
+            />
+            {colInputError && <p className="text-red-500 text-xs mt-1">{colInputError}</p>}
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={applySettings}
+              disabled={hasInputError}
+              className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              適用
+            </button>
+            <button
+              onClick={clearSettings}
+              className="px-3 py-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
+            >
+              クリア
+            </button>
+          </div>
+        </div>
+      )}
       {/* グリッド */}
       <div
         ref={containerRef}
@@ -273,6 +373,9 @@ export default function DiffGrid({ cells, hasFileC = false, sheetKey }: Props) {
             <tr>
               {/* 行番号列ヘッダー */}
               <th className="w-12 min-w-[3rem] bg-gray-100 border border-gray-300 px-2 py-1 text-gray-500 font-normal sticky left-0 z-10" />
+              {Object.keys(rowLabels).length > 0 && (
+                <th className="min-w-[6rem] bg-gray-50 border border-gray-300 px-2 py-1 text-center text-gray-500 font-normal" />
+              )}
               {uniqueCols.map((col) => (
                 <th
                   key={col}
@@ -284,6 +387,20 @@ export default function DiffGrid({ cells, hasFileC = false, sheetKey }: Props) {
                 </th>
               ))}
             </tr>
+            {/* 列名行（設定時のみ） */}
+            {Object.keys(colLabels).length > 0 && (
+              <tr>
+                <th className="bg-gray-50 border border-gray-300 px-2 py-1 sticky left-0 z-10" />
+                {Object.keys(rowLabels).length > 0 && (
+                  <td className="bg-gray-50 border border-gray-300 px-2 py-1" />
+                )}
+                {uniqueCols.map((col) => (
+                  <td key={col} className="bg-gray-50 border border-gray-300 px-2 py-1 text-center text-gray-500 text-xs">
+                    {colLabels[col] ?? ""}
+                  </td>
+                ))}
+              </tr>
+            )}
           </thead>
           <tbody>
             {uniqueRows.map((row) => (
@@ -296,6 +413,12 @@ export default function DiffGrid({ cells, hasFileC = false, sheetKey }: Props) {
                 >
                   {row}
                 </td>
+                {/* 行名列（設定時のみ） */}
+                {Object.keys(rowLabels).length > 0 && (
+                  <td className="bg-gray-50 border border-gray-300 px-2 py-1 text-center text-gray-500 text-xs">
+                    {rowLabels[String(row)] ?? ""}
+                  </td>
+                )}
                 {uniqueCols.map((col) => {
                   const key = `${row}-${col}`;
                   const diff = cellMap.get(key);
