@@ -72,7 +72,7 @@ export default function ColRowFilter({ label, items, excluded, onChange }: Props
       </button>
 
       {open && (
-        <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded shadow-lg z-50 min-w-[140px]">
+        <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded shadow-lg z-50 min-w-[140px]" style={{ colorScheme: "light" }}>
           <div className="px-3 py-2 text-xs text-gray-500 border-b">
             表示する{label}
           </div>
@@ -82,7 +82,7 @@ export default function ColRowFilter({ label, items, excluded, onChange }: Props
               placeholder="検索"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full text-xs border border-gray-200 rounded px-2 py-1 outline-none focus:border-blue-400"
+              className="w-full text-xs bg-white text-gray-800 border border-gray-200 rounded px-2 py-1 outline-none focus:border-blue-400"
               onMouseDown={(e) => e.stopPropagation()}
             />
           </div>
@@ -101,7 +101,7 @@ export default function ColRowFilter({ label, items, excluded, onChange }: Props
               return (
                 <label
                   key={item}
-                  className="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-50 cursor-pointer text-xs"
+                  className="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-50 cursor-pointer text-xs text-gray-700"
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={(e) => {
                     e.preventDefault();
