@@ -3,13 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import SheetTabs from "../components/SheetTabs";
 import ShapesSection from "../components/ShapesSection";
 import DiffGrid from "../components/DiffGrid";
-import ColRowFilter from "../components/ColRowFilter";
 import type { DiffReport, CellDiff } from "../types/diff";
-
-interface ColRowFilterState {
-  excludedCols: Set<string>;
-  excludedRows: Set<string>;
-}
 
 export type FilterType = "all" | "conflict" | "b" | "c";
 
@@ -27,7 +21,6 @@ export default function Report() {
   const [activeSheet, setActiveSheet] = useState("");
   const [filter, setFilter] = useState<FilterType>("all");
   const [error, setError] = useState("");
-  const [colRowFilters, setColRowFilters] = useState<Record<string, ColRowFilterState>>({});
 
   useEffect(() => {
     if (!reportId) return;
@@ -106,53 +99,12 @@ export default function Report() {
     ...(sheetData?.comments ?? []),
   ];
 
-  // 列・行フィルタ
-  const sheetFilter = colRowFilters[activeSheet] ?? { excludedCols: new Set(), excludedRows: new Set() };
-
-  // 差分セルから列・行の一覧を導出（相互フィルタ適用後のセルから導出）
-  const allCols = [...new Set(
-    allCells
-      .filter((c) => !sheetFilter.excludedRows.has(c.cell.match(/(\d+)$/)?.[1] ?? ""))
-      .map((c) => c.cell.match(/^([A-Z]+)/)?.[1] ?? "")
-      .filter(Boolean)
-  )].sort((a, b) => a.localeCompare(b));
-  const allRows = [...new Set(
-    allCells
-      .filter((c) => !sheetFilter.excludedCols.has(c.cell.match(/^([A-Z]+)/)?.[1] ?? ""))
-      .map((c) => c.cell.match(/(\d+)$/)?.[1] ?? "")
-      .filter(Boolean)
-  )].sort((a, b) => Number(a) - Number(b));
-
-  // 有効な除外セット（ドロップダウン項目にない項目は自動クリア）
-  const effectiveExcludedCols = new Set([...sheetFilter.excludedCols].filter((c) => allCols.includes(c)));
-  const effectiveExcludedRows = new Set([...sheetFilter.excludedRows].filter((r) => allRows.includes(r)));
-
-  const colRowFilteredCells = allCells.filter((c) => {
-    const col = c.cell.match(/^([A-Z]+)/)?.[1] ?? "";
-    const row = c.cell.match(/(\d+)$/)?.[1] ?? "";
-    return !effectiveExcludedCols.has(col) && !effectiveExcludedRows.has(row);
-  });
-
-  const filteredCells = colRowFilteredCells.filter((c) => {
+  const filteredCells = allCells.filter((c) => {
     if (filter === "conflict") return c.status === "conflict";
     if (filter === "b")        return c.changed_by === "b" || c.changed_by === "both";
     if (filter === "c")        return c.changed_by === "c" || c.changed_by === "both";
     return true;
   });
-
-  function updateColFilter(excludedCols: Set<string>) {
-    setColRowFilters((prev) => ({
-      ...prev,
-      [activeSheet]: { ...sheetFilter, excludedCols },
-    }));
-  }
-
-  function updateRowFilter(excludedRows: Set<string>) {
-    setColRowFilters((prev) => ({
-      ...prev,
-      [activeSheet]: { ...sheetFilter, excludedRows },
-    }));
-  }
 
   return (
     <div className="h-screen bg-white flex flex-col text-sm overflow-hidden">
@@ -199,20 +151,6 @@ export default function Report() {
         ))}
         <span className="ml-2 text-xs text-gray-400">{filteredCells.length}件</span>
 
-        <div className="w-px h-4 bg-gray-300 mx-1" />
-        <ColRowFilter
-          label="列"
-          items={allCols}
-          excluded={effectiveExcludedCols}
-          onChange={updateColFilter}
-        />
-        <ColRowFilter
-          label="行"
-          items={allRows}
-          excluded={effectiveExcludedRows}
-          onChange={updateRowFilter}
-        />
-
         {/* 凡例 */}
         <div className="ml-auto flex items-center gap-3 text-xs text-gray-500">
           <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-orange-200 border border-orange-400 inline-block" />競合</span>
@@ -226,7 +164,7 @@ export default function Report() {
 
       {/* グリッド */}
       <div className="flex-1 overflow-hidden min-h-0">
-        <DiffGrid cells={filteredCells} hasFileC={!!report.meta.file_c} />
+        <DiffGrid cells={filteredCells} hasFileC={!!report.meta.file_c} sheetKey={activeSheet} />
         {sheetData?.shapes && <ShapesSection shapes={sheetData.shapes} />}
       </div>
     </div>

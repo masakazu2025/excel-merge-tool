@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { CellDiff } from "../types/diff";
 import CellDetailModal from "./CellDetailModal";
+import ColRowFilter from "./ColRowFilter";
 
 type Props = {
   cells: CellDiff[];
   hasFileC?: boolean;
+  sheetKey?: string;
 };
 
 // "B4" → { col: "B", row: 4 }
@@ -37,10 +39,45 @@ function displayValue(diff: CellDiff): string {
   return diff.b_value ?? diff.base_value ?? "";
 }
 
-export default function DiffGrid({ cells, hasFileC = false }: Props) {
+export default function DiffGrid({ cells, hasFileC = false, sheetKey }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [focusedId, setFocusedId] = useState<string | null>(null);
   const [modalCell, setModalCell] = useState<CellDiff | null>(null);
+
+  // 自前ダブルクリック検出（ブラウザの onDoubleClick より確実）
+  const lastClickRef = useRef<{ key: string; time: number } | null>(null);
+  const DBLCLICK_MS = 400;
+
+  function handleHeaderClick(key: string, onDblClick: () => void) {
+    const now = Date.now();
+    if (lastClickRef.current?.key === key && now - lastClickRef.current.time < DBLCLICK_MS) {
+      lastClickRef.current = null;
+      onDblClick();
+    } else {
+      lastClickRef.current = { key, time: now };
+    }
+  }
+
+  // Per-sheet filter state
+  type FilterState = { cols: Set<string>; rows: Set<string> };
+  const filtersBySheet = useRef(new Map<string, FilterState>());
+  const [excludedCols, setExcludedCols] = useState(new Set<string>());
+  const [excludedRows, setExcludedRows] = useState(new Set<string>());
+
+  // Restore filter state when sheetKey changes
+  useEffect(() => {
+    const key = sheetKey ?? "";
+    const saved = filtersBySheet.current.get(key);
+    setExcludedCols(saved?.cols ?? new Set());
+    setExcludedRows(saved?.rows ?? new Set());
+  }, [sheetKey]);
+
+  // Save filter state when it changes
+  useEffect(() => {
+    filtersBySheet.current.set(sheetKey ?? "", { cols: excludedCols, rows: excludedRows });
+  }, [sheetKey, excludedCols, excludedRows]);
+
+  const hasAnyFilter = excludedCols.size > 0 || excludedRows.size > 0;
 
   // Parse and index cells
   const parsed = cells
@@ -55,14 +92,31 @@ export default function DiffGrid({ cells, hasFileC = false }: Props) {
       x !== null && x.pos !== null
     );
 
-  const uniqueRows = [...new Set(parsed.map((x) => x.pos.row))].sort((a, b) => a - b);
-  const uniqueCols = [...new Set(parsed.map((x) => x.pos.col))].sort(
+  // Dropdown items: mutual filtering
+  const colsForDropdown = [...new Set(
+    parsed.filter((x) => !excludedRows.has(String(x.pos.row))).map((x) => x.pos.col)
+  )].sort((a, b) => colToNum(a) - colToNum(b));
+
+  const rowsForDropdown = [...new Set(
+    parsed.filter((x) => !excludedCols.has(x.pos.col)).map((x) => String(x.pos.row))
+  )].sort((a, b) => Number(a) - Number(b));
+
+  const effectiveExcludedCols = new Set([...excludedCols].filter((c) => colsForDropdown.includes(c)));
+  const effectiveExcludedRows = new Set([...excludedRows].filter((r) => rowsForDropdown.includes(r)));
+
+  // Apply col/row filter
+  const filteredParsed = parsed.filter(
+    (x) => !effectiveExcludedCols.has(x.pos.col) && !effectiveExcludedRows.has(String(x.pos.row))
+  );
+
+  const uniqueRows = [...new Set(filteredParsed.map((x) => x.pos.row))].sort((a, b) => a - b);
+  const uniqueCols = [...new Set(filteredParsed.map((x) => x.pos.col))].sort(
     (a, b) => colToNum(a) - colToNum(b)
   );
 
   // cellMap: "row-col" → CellDiff
   const cellMap = new Map<string, CellDiff>();
-  for (const { diff, pos } of parsed) {
+  for (const { diff, pos } of filteredParsed) {
     cellMap.set(`${pos.row}-${pos.col}`, diff);
   }
 
@@ -153,63 +207,95 @@ export default function DiffGrid({ cells, hasFileC = false }: Props) {
   return (
     <>
     {modalCell && <CellDetailModal cell={modalCell} onClose={() => setModalCell(null)} hasFileC={hasFileC} />}
-    <div
-      ref={containerRef}
-      tabIndex={0}
-      data-testid="diff-grid"
-      className="overflow-scroll h-full w-full outline-none focus:ring-2 focus:ring-blue-300 rounded"
-    >
-      <table className="border-collapse text-xs select-none">
-        <thead>
-          <tr>
-            {/* 行番号列ヘッダー */}
-            <th className="w-12 min-w-[3rem] bg-gray-100 border border-gray-300 px-2 py-1 text-gray-500 font-normal sticky left-0 z-10" />
-            {uniqueCols.map((col) => (
-              <th
-                key={col}
-                className="min-w-[6rem] bg-gray-100 border border-gray-300 px-2 py-1 text-center text-gray-600 font-medium"
-              >
-                {col}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {uniqueRows.map((row) => (
-            <tr key={row}>
-              {/* 行番号 */}
-              <td className="bg-gray-100 border border-gray-300 px-2 py-1 text-center text-gray-500 sticky left-0 z-10 font-medium">
-                {row}
-              </td>
-              {uniqueCols.map((col) => {
-                const key = `${row}-${col}`;
-                const diff = cellMap.get(key);
-                const isFocused = focusedId === key;
-                if (!diff) {
+    <div className="flex flex-col h-full w-full">
+      {/* Col/Row フィルタバー */}
+      <div className="flex items-center gap-2 px-2 py-1 border-b border-gray-200 bg-gray-50 shrink-0">
+        <ColRowFilter
+          label="列"
+          items={colsForDropdown}
+          excluded={effectiveExcludedCols}
+          onChange={(s) => setExcludedCols(new Set(s))}
+        />
+        <ColRowFilter
+          label="行"
+          items={rowsForDropdown}
+          excluded={effectiveExcludedRows}
+          onChange={(s) => setExcludedRows(new Set(s))}
+        />
+        {hasAnyFilter && (
+          <button
+            onClick={() => { setExcludedCols(new Set()); setExcludedRows(new Set()); }}
+            className="px-3 py-1 rounded text-xs font-medium bg-gray-200 text-gray-700 hover:bg-gray-300"
+          >
+            すべて解除
+          </button>
+        )}
+      </div>
+      {/* グリッド */}
+      <div
+        ref={containerRef}
+        tabIndex={0}
+        data-testid="diff-grid"
+        className="overflow-scroll flex-1 outline-none focus:ring-2 focus:ring-blue-300 rounded"
+      >
+        <table className="border-collapse text-xs select-none">
+          <thead>
+            <tr>
+              {/* 行番号列ヘッダー */}
+              <th className="w-12 min-w-[3rem] bg-gray-100 border border-gray-300 px-2 py-1 text-gray-500 font-normal sticky left-0 z-10" />
+              {uniqueCols.map((col) => (
+                <th
+                  key={col}
+                  data-col={col}
+                  onClick={() => handleHeaderClick(`col-${col}`, () => setExcludedCols((prev) => new Set([...prev, col])))}
+                  className="min-w-[6rem] bg-gray-100 border border-gray-300 px-2 py-1 text-center text-gray-600 font-medium cursor-pointer select-none"
+                >
+                  {col}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {uniqueRows.map((row) => (
+              <tr key={row}>
+                {/* 行番号 */}
+                <td
+                  data-row={String(row)}
+                  onClick={() => handleHeaderClick(`row-${row}`, () => setExcludedRows((prev) => new Set([...prev, String(row)])))}
+                  className="bg-gray-100 border border-gray-300 px-2 py-1 text-center text-gray-500 sticky left-0 z-10 font-medium cursor-pointer select-none"
+                >
+                  {row}
+                </td>
+                {uniqueCols.map((col) => {
+                  const key = `${row}-${col}`;
+                  const diff = cellMap.get(key);
+                  const isFocused = focusedId === key;
+                  if (!diff) {
+                    return (
+                      <td key={col} className="border border-gray-200 px-2 py-1 bg-white text-gray-300">
+                        &nbsp;
+                      </td>
+                    );
+                  }
                   return (
-                    <td key={col} className="border border-gray-200 px-2 py-1 bg-white text-gray-300">
-                      &nbsp;
+                    <td
+                      key={col}
+                      data-key={key}
+                      onClick={() => { setFocusedId(key); setModalCell(diff); }}
+                      className={`border px-2 py-1 cursor-pointer truncate max-w-[10rem] ${cellBg(diff)} ${
+                        isFocused ? "ring-2 ring-inset ring-blue-500" : ""
+                      }`}
+                      title={displayValue(diff)}
+                    >
+                      {displayValue(diff) || <span className="text-gray-400 italic">（空）</span>}
                     </td>
                   );
-                }
-                return (
-                  <td
-                    key={col}
-                    data-key={key}
-                    onClick={() => { setFocusedId(key); setModalCell(diff); }}
-                    className={`border px-2 py-1 cursor-pointer truncate max-w-[10rem] ${cellBg(diff)} ${
-                      isFocused ? "ring-2 ring-inset ring-blue-500" : ""
-                    }`}
-                    title={displayValue(diff)}
-                  >
-                    {displayValue(diff) || <span className="text-gray-400 italic">（空）</span>}
-                  </td>
-                );
-              })}
-            </tr>
-          ))}
-        </tbody>
-      </table>
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
     </>
   );

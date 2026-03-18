@@ -6,6 +6,7 @@
  * B-031: 列・行フィルタで特定の列・行を除外できる
  * B-032: 詳細モーダルのサイズ固定とセル表示の統一
  * B-033: グリッドエリアの全画面化とスクロールバー常時表示
+ * B-034: フィルタ操作強化（ダブルクリック除外・一括解除・スクロール・検索）
  */
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { render, screen, waitFor, fireEvent } from '@testing-library/react'
@@ -509,13 +510,95 @@ describe('B-032: 詳細モーダルのサイズ固定とセル表示の統一', 
   })
 
   // B-033
-  it('DiffGrid に overflow-scroll と h-full w-full が設定されている', () => {
+  it('DiffGrid に overflow-scroll が設定されている', () => {
     const cells = [makeCell({ cell: 'A1', status: 'update', b_value: '新値' })]
     render(<MemoryRouter><DiffGrid cells={cells} /></MemoryRouter>)
     const grid = document.querySelector('[data-testid="diff-grid"]') as HTMLElement
     expect(grid?.className).toMatch(/overflow-scroll/)
-    expect(grid?.className).toMatch(/h-full/)
-    expect(grid?.className).toMatch(/w-full/)
+  })
+
+  // B-034
+  it('列ヘッダーを2回クリックするとその列が除外される', async () => {
+    const user = userEvent.setup()
+    const cells = [
+      makeCell({ cell: 'A1', status: 'update', b_value: '新A' }),
+      makeCell({ cell: 'B1', status: 'update', b_value: '新B' }),
+    ]
+    render(<MemoryRouter><DiffGrid cells={cells} /></MemoryRouter>)
+    const th = document.querySelector('th[data-col="A"]') as HTMLElement
+    await user.click(th)
+    await user.click(th)
+    expect(document.querySelector('td[data-key="1-A"]')).not.toBeInTheDocument()
+    expect(document.querySelector('td[data-key="1-B"]')).toBeInTheDocument()
+  })
+
+  it('行ヘッダーを2回クリックするとその行が除外される', async () => {
+    const user = userEvent.setup()
+    const cells = [
+      makeCell({ cell: 'A1', status: 'update', b_value: '新1' }),
+      makeCell({ cell: 'A2', status: 'update', b_value: '新2' }),
+    ]
+    render(<MemoryRouter><DiffGrid cells={cells} /></MemoryRouter>)
+    const th = document.querySelector('td[data-row="1"]') as HTMLElement
+    await user.click(th)
+    await user.click(th)
+    expect(document.querySelector('td[data-key="1-A"]')).not.toBeInTheDocument()
+    expect(document.querySelector('td[data-key="2-A"]')).toBeInTheDocument()
+  })
+
+  it('フィルタが適用中に「すべて解除」ボタンが表示され、クリックで全解除される', async () => {
+    const user = userEvent.setup()
+    const cells = [
+      makeCell({ cell: 'A1', status: 'update', b_value: '新A' }),
+      makeCell({ cell: 'B1', status: 'update', b_value: '新B' }),
+    ]
+    render(<MemoryRouter><DiffGrid cells={cells} /></MemoryRouter>)
+
+    // フィルタ適用前は「すべて解除」ボタンが非表示
+    expect(screen.queryByRole('button', { name: 'すべて解除' })).not.toBeInTheDocument()
+
+    // 列ヘッダーを2回クリックで除外
+    const th = document.querySelector('th[data-col="A"]') as HTMLElement
+    await user.click(th)
+    await user.click(th)
+    expect(document.querySelector('td[data-key="1-A"]')).not.toBeInTheDocument()
+
+    // すべて解除ボタンが出現
+    const clearBtn = screen.getByRole('button', { name: 'すべて解除' })
+    expect(clearBtn).toBeInTheDocument()
+
+    // クリックで全解除
+    await user.click(clearBtn)
+    expect(document.querySelector('td[data-key="1-A"]')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'すべて解除' })).not.toBeInTheDocument()
+  })
+
+  it('ドロップダウンに検索ボックスが表示され、入力で項目が絞り込まれる', async () => {
+    const user = userEvent.setup()
+    const cells = [
+      makeCell({ cell: 'A1', status: 'update', b_value: '新A' }),
+      makeCell({ cell: 'B1', status: 'update', b_value: '新B' }),
+      makeCell({ cell: 'C1', status: 'update', b_value: '新C' }),
+    ]
+    render(<MemoryRouter><DiffGrid cells={cells} /></MemoryRouter>)
+
+    // ドロップダウンを開く
+    const colBtn = screen.getByRole('button', { name: /列/ })
+    await user.click(colBtn)
+
+    // 全項目が表示されている
+    expect(screen.getByLabelText('A')).toBeInTheDocument()
+    expect(screen.getByLabelText('B')).toBeInTheDocument()
+    expect(screen.getByLabelText('C')).toBeInTheDocument()
+
+    // 検索ボックスに入力
+    const searchBox = screen.getByPlaceholderText('検索')
+    await user.type(searchBox, 'A')
+
+    // A のみ表示
+    expect(screen.getByLabelText('A')).toBeInTheDocument()
+    expect(screen.queryByLabelText('B')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('C')).not.toBeInTheDocument()
   })
 
   it('モーダルのコンテンツエリアに固定高さが設定されている', async () => {

@@ -9,8 +9,13 @@ interface Props {
 
 export default function ColRowFilter({ label, items, excluded, onChange }: Props) {
   const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
   const lastClickedIndex = useRef<number | null>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
+
+  const filteredItems = search
+    ? items.filter((item) => item.toLowerCase().startsWith(search.toLowerCase()))
+    : items;
 
   const excludedCount = items.filter((item) => excluded.has(item)).length;
   const isActive = excludedCount > 0;
@@ -67,9 +72,19 @@ export default function ColRowFilter({ label, items, excluded, onChange }: Props
       </button>
 
       {open && (
-        <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded shadow-lg z-50 min-w-[120px]">
+        <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded shadow-lg z-50 min-w-[140px]" style={{ colorScheme: "light" }}>
           <div className="px-3 py-2 text-xs text-gray-500 border-b">
             表示する{label}
+          </div>
+          <div className="px-3 py-1.5 border-b">
+            <input
+              type="text"
+              placeholder="検索"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full text-xs bg-white text-gray-800 border border-gray-200 rounded px-2 py-1 outline-none focus:border-blue-400"
+              onMouseDown={(e) => e.stopPropagation()}
+            />
           </div>
           <div className="flex gap-2 px-3 py-1.5 border-b">
             <button onClick={selectAll} className="text-xs text-blue-600 hover:underline">
@@ -80,26 +95,31 @@ export default function ColRowFilter({ label, items, excluded, onChange }: Props
               すべて解除
             </button>
           </div>
-          {items.map((item, index) => (
-            <label
-              key={item}
-              className="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-50 cursor-pointer text-xs"
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={(e) => {
-                e.preventDefault();
-                toggle(item, index, e.shiftKey);
-              }}
-            >
-              <input
-                type="checkbox"
-                aria-label={item}
-                checked={!excluded.has(item)}
-                readOnly
-                className="accent-blue-600 pointer-events-none"
-              />
-              {item}
-            </label>
-          ))}
+          <div className="max-h-48 overflow-y-auto">
+            {filteredItems.map((item) => {
+              const index = items.indexOf(item);
+              return (
+                <label
+                  key={item}
+                  className="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-50 cursor-pointer text-xs text-gray-700"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    toggle(item, index, e.shiftKey);
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    aria-label={item}
+                    checked={!excluded.has(item)}
+                    readOnly
+                    className="accent-blue-600 pointer-events-none"
+                  />
+                  {item}
+                </label>
+              );
+            })}
+          </div>
         </div>
       )}
     </div>
