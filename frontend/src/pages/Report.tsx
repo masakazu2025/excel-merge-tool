@@ -164,7 +164,7 @@ export default function Report() {
 
       {/* グリッド */}
       <div className="flex-1 overflow-hidden min-h-0">
-        <DiffGrid cells={filteredCells} hasFileC={!!report.meta.file_c} sheetKey={activeSheet} />
+        <DiffGrid cells={filteredCells} hasFileC={!!report.meta.file_c} sheetKey={activeSheet} reportId={reportId} />
         {sheetData?.shapes && <ShapesSection shapes={sheetData.shapes} />}
       </div>
     </div>
