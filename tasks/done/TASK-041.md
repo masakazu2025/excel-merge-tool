@@ -2,12 +2,13 @@
 id: TASK-041
 title: cell-rangeエンドポイント実装（B-036）
 type: impl
-status: ready
+status: done
 refs:
   - docs/requirements/backend/REQ-002_api/behaviors/B-036.md
 files:
   - backend/src/api/reports.py
-  - backend/tests/test_reports.py
+  - backend/src/api/compare.py
+  - backend/tests/test_b036_cell_range.py
 ---
 
 ## やること
@@ -26,7 +27,7 @@ files:
 
 ## 完了条件
 
-- [ ] row指定でセル値が返る
-- [ ] col指定でセル値が返る
-- [ ] バリデーションエラーが返る
-- [ ] テストが通る
+- [x] row指定でセル値が返る
+- [x] col指定でセル値が返る
+- [x] バリデーションエラーが返る
+- [x] テストが通る
