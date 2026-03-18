@@ -2,7 +2,7 @@
 id: TASK-039
 title: フィルタ操作強化（B-034実装）
 type: impl
-status: ready
+status: done
 refs:
   - docs/requirements/frontend/REQ-005_report/behaviors/B-034.md
 files:

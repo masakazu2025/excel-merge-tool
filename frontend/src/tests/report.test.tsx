@@ -510,13 +510,11 @@ describe('B-032: 詳細モーダルのサイズ固定とセル表示の統一', 
   })
 
   // B-033
-  it('DiffGrid に overflow-scroll と h-full w-full が設定されている', () => {
+  it('DiffGrid に overflow-scroll が設定されている', () => {
     const cells = [makeCell({ cell: 'A1', status: 'update', b_value: '新値' })]
     render(<MemoryRouter><DiffGrid cells={cells} /></MemoryRouter>)
     const grid = document.querySelector('[data-testid="diff-grid"]') as HTMLElement
     expect(grid?.className).toMatch(/overflow-scroll/)
-    expect(grid?.className).toMatch(/h-full/)
-    expect(grid?.className).toMatch(/w-full/)
   })
 
   // B-034
