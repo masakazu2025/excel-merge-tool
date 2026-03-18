@@ -731,6 +731,36 @@ describe('B-037: 列名・行名の表示設定', () => {
     await waitFor(() => expect(screen.queryByText('商品名')).not.toBeInTheDocument())
   })
 
+  it('行番号にアルファベットを入力するとエラーメッセージが表示され適用できない', async () => {
+    const user = userEvent.setup()
+    const cells = [makeCell({ cell: 'A1', status: 'update' })]
+    render(<MemoryRouter><DiffGrid cells={cells} reportId="test-report" sheetKey="Sheet1" /></MemoryRouter>)
+    await user.click(screen.getByRole('button', { name: /表示設定/ }))
+    await user.type(screen.getByLabelText(/列名に使う行番号/), 'A')
+    expect(screen.getByRole('button', { name: '適用' })).toBeDisabled()
+    expect(screen.getByText(/半角数字/)).toBeInTheDocument()
+  })
+
+  it('列番号に数字を入力するとエラーメッセージが表示され適用できない', async () => {
+    const user = userEvent.setup()
+    const cells = [makeCell({ cell: 'A1', status: 'update' })]
+    render(<MemoryRouter><DiffGrid cells={cells} reportId="test-report" sheetKey="Sheet1" /></MemoryRouter>)
+    await user.click(screen.getByRole('button', { name: /表示設定/ }))
+    await user.type(screen.getByLabelText(/行名に使う列番号/), '1')
+    expect(screen.getByRole('button', { name: '適用' })).toBeDisabled()
+    expect(screen.getByText(/アルファベット/)).toBeInTheDocument()
+  })
+
+  it('正しい入力では適用ボタンが有効', async () => {
+    const user = userEvent.setup()
+    const cells = [makeCell({ cell: 'A1', status: 'update' })]
+    render(<MemoryRouter><DiffGrid cells={cells} reportId="test-report" sheetKey="Sheet1" /></MemoryRouter>)
+    await user.click(screen.getByRole('button', { name: /表示設定/ }))
+    await user.type(screen.getByLabelText(/列名に使う行番号/), '1')
+    await user.type(screen.getByLabelText(/行名に使う列番号/), 'A')
+    expect(screen.getByRole('button', { name: '適用' })).not.toBeDisabled()
+  })
+
   it('列名と行名を設定後、行名入力を空にして適用すると行名が消える', async () => {
     const user = userEvent.setup()
     const cells = [makeCell({ cell: 'B2', status: 'update', b_value: 'B2値' })]

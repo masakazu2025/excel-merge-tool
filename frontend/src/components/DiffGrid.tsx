@@ -73,6 +73,12 @@ export default function DiffGrid({ cells, hasFileC = false, sheetKey, reportId }
   const [colLabels, setColLabels] = useState<Record<string, string>>({});
   const [rowLabels, setRowLabels] = useState<Record<string, string>>({});
 
+  const rowInputError = settingsRowInput.trim() !== "" && !/^\d+$/.test(settingsRowInput.trim())
+    ? "半角数字で入力してください（例: 1）" : "";
+  const colInputError = settingsColInput.trim() !== "" && !/^[A-Za-z]+$/.test(settingsColInput.trim())
+    ? "アルファベットで入力してください（例: A）" : "";
+  const hasInputError = rowInputError !== "" || colInputError !== "";
+
   // シート切り替えで表示設定をリセット
   useEffect(() => {
     setColLabels({});
@@ -321,8 +327,9 @@ export default function DiffGrid({ cells, hasFileC = false, sheetKey, reportId }
               value={settingsRowInput}
               onChange={(e) => setSettingsRowInput(e.target.value)}
               placeholder="例: 1"
-              className="w-full border border-gray-300 rounded px-2 py-1 text-gray-800 bg-white"
+              className={`w-full border rounded px-2 py-1 text-gray-800 bg-white ${rowInputError ? "border-red-400" : "border-gray-300"}`}
             />
+            {rowInputError && <p className="text-red-500 text-xs mt-1">{rowInputError}</p>}
           </div>
           <div className="mb-3">
             <label htmlFor="settings-row-col" className="block text-gray-600 mb-1">行名に使う列番号</label>
@@ -332,13 +339,15 @@ export default function DiffGrid({ cells, hasFileC = false, sheetKey, reportId }
               value={settingsColInput}
               onChange={(e) => setSettingsColInput(e.target.value)}
               placeholder="例: A"
-              className="w-full border border-gray-300 rounded px-2 py-1 text-gray-800 bg-white"
+              className={`w-full border rounded px-2 py-1 text-gray-800 bg-white ${colInputError ? "border-red-400" : "border-gray-300"}`}
             />
+            {colInputError && <p className="text-red-500 text-xs mt-1">{colInputError}</p>}
           </div>
           <div className="flex gap-2">
             <button
               onClick={applySettings}
-              className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
+              disabled={hasInputError}
+              className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed"
             >
               適用
             </button>
