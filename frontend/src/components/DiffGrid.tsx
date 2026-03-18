@@ -50,13 +50,20 @@ export default function DiffGrid({ cells, hasFileC = false, sheetKey }: Props) {
   const MAX_ZOOM = 100;
   const ZOOM_STEP = 10;
 
-  function handleWheel(e: React.WheelEvent) {
-    if (!e.ctrlKey) return;
-    e.preventDefault();
-    setZoom((prev) =>
-      Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, prev + (e.deltaY < 0 ? ZOOM_STEP : -ZOOM_STEP)))
-    );
-  }
+  // passive: false で登録しないと preventDefault() が効かない
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const handler = (e: WheelEvent) => {
+      if (!e.ctrlKey) return;
+      e.preventDefault();
+      setZoom((prev) =>
+        Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, prev + (e.deltaY < 0 ? ZOOM_STEP : -ZOOM_STEP)))
+      );
+    };
+    el.addEventListener("wheel", handler, { passive: false });
+    return () => el.removeEventListener("wheel", handler);
+  }, []);
 
   // 自前ダブルクリック検出（ブラウザの onDoubleClick より確実）
   const lastClickRef = useRef<{ key: string; time: number } | null>(null);
@@ -258,7 +265,6 @@ export default function DiffGrid({ cells, hasFileC = false, sheetKey }: Props) {
         ref={containerRef}
         tabIndex={0}
         data-testid="diff-grid"
-        onWheel={handleWheel}
         className="overflow-scroll flex-1 outline-none focus:ring-2 focus:ring-blue-300 rounded"
       >
         <div style={{ zoom: `${zoom}%` }}>
