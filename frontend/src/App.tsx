@@ -7,14 +7,11 @@ import Report from "./pages/Report";
 export default function App() {
   return (
     <BrowserRouter>
-      <div className="min-h-screen bg-gray-50">
-        <Header />
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/history" element={<History />} />
-          <Route path="/report/:reportId" element={<Report />} />
-        </Routes>
-      </div>
+      <Routes>
+        <Route path="/" element={<div className="min-h-screen bg-gray-50"><Header /><Home /></div>} />
+        <Route path="/history" element={<div className="min-h-screen bg-gray-50"><Header /><History /></div>} />
+        <Route path="/report/:reportId" element={<Report />} />
+      </Routes>
     </BrowserRouter>
   );
 }
