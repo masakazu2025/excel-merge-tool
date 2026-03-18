@@ -518,7 +518,7 @@ describe('B-032: 詳細モーダルのサイズ固定とセル表示の統一', 
   })
 
   // B-034
-  it('列ヘッダーをダブルクリックするとその列が除外される', async () => {
+  it('列ヘッダーを2回クリックするとその列が除外される', async () => {
     const user = userEvent.setup()
     const cells = [
       makeCell({ cell: 'A1', status: 'update', b_value: '新A' }),
@@ -526,12 +526,13 @@ describe('B-032: 詳細モーダルのサイズ固定とセル表示の統一', 
     ]
     render(<MemoryRouter><DiffGrid cells={cells} /></MemoryRouter>)
     const th = document.querySelector('th[data-col="A"]') as HTMLElement
-    await user.dblClick(th)
+    await user.click(th)
+    await user.click(th)
     expect(document.querySelector('td[data-key="1-A"]')).not.toBeInTheDocument()
     expect(document.querySelector('td[data-key="1-B"]')).toBeInTheDocument()
   })
 
-  it('行ヘッダーをダブルクリックするとその行が除外される', async () => {
+  it('行ヘッダーを2回クリックするとその行が除外される', async () => {
     const user = userEvent.setup()
     const cells = [
       makeCell({ cell: 'A1', status: 'update', b_value: '新1' }),
@@ -539,7 +540,8 @@ describe('B-032: 詳細モーダルのサイズ固定とセル表示の統一', 
     ]
     render(<MemoryRouter><DiffGrid cells={cells} /></MemoryRouter>)
     const th = document.querySelector('td[data-row="1"]') as HTMLElement
-    await user.dblClick(th)
+    await user.click(th)
+    await user.click(th)
     expect(document.querySelector('td[data-key="1-A"]')).not.toBeInTheDocument()
     expect(document.querySelector('td[data-key="2-A"]')).toBeInTheDocument()
   })
@@ -555,9 +557,10 @@ describe('B-032: 詳細モーダルのサイズ固定とセル表示の統一', 
     // フィルタ適用前は「すべて解除」ボタンが非表示
     expect(screen.queryByRole('button', { name: 'すべて解除' })).not.toBeInTheDocument()
 
-    // 列をダブルクリックで除外
+    // 列ヘッダーを2回クリックで除外
     const th = document.querySelector('th[data-col="A"]') as HTMLElement
-    await user.dblClick(th)
+    await user.click(th)
+    await user.click(th)
     expect(document.querySelector('td[data-key="1-A"]')).not.toBeInTheDocument()
 
     // すべて解除ボタンが出現

@@ -44,6 +44,20 @@ export default function DiffGrid({ cells, hasFileC = false, sheetKey }: Props) {
   const [focusedId, setFocusedId] = useState<string | null>(null);
   const [modalCell, setModalCell] = useState<CellDiff | null>(null);
 
+  // 自前ダブルクリック検出（ブラウザの onDoubleClick より確実）
+  const lastClickRef = useRef<{ key: string; time: number } | null>(null);
+  const DBLCLICK_MS = 400;
+
+  function handleHeaderClick(key: string, onDblClick: () => void) {
+    const now = Date.now();
+    if (lastClickRef.current?.key === key && now - lastClickRef.current.time < DBLCLICK_MS) {
+      lastClickRef.current = null;
+      onDblClick();
+    } else {
+      lastClickRef.current = { key, time: now };
+    }
+  }
+
   // Per-sheet filter state
   type FilterState = { cols: Set<string>; rows: Set<string> };
   const filtersBySheet = useRef(new Map<string, FilterState>());
@@ -233,7 +247,7 @@ export default function DiffGrid({ cells, hasFileC = false, sheetKey }: Props) {
                 <th
                   key={col}
                   data-col={col}
-                  onDoubleClick={() => setExcludedCols((prev) => new Set([...prev, col]))}
+                  onClick={() => handleHeaderClick(`col-${col}`, () => setExcludedCols((prev) => new Set([...prev, col])))}
                   className="min-w-[6rem] bg-gray-100 border border-gray-300 px-2 py-1 text-center text-gray-600 font-medium cursor-pointer select-none"
                 >
                   {col}
@@ -247,7 +261,7 @@ export default function DiffGrid({ cells, hasFileC = false, sheetKey }: Props) {
                 {/* 行番号 */}
                 <td
                   data-row={String(row)}
-                  onDoubleClick={() => setExcludedRows((prev) => new Set([...prev, String(row)]))}
+                  onClick={() => handleHeaderClick(`row-${row}`, () => setExcludedRows((prev) => new Set([...prev, String(row)])))}
                   className="bg-gray-100 border border-gray-300 px-2 py-1 text-center text-gray-500 sticky left-0 z-10 font-medium cursor-pointer select-none"
                 >
                   {row}
