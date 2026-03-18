@@ -2,7 +2,7 @@
 id: TASK-037
 title: グリッド全画面化・スクロールバー常時表示
 type: impl
-status: ready
+status: done
 refs:
   - docs/requirements/frontend/REQ-005_report/behaviors/B-033.md
 files:

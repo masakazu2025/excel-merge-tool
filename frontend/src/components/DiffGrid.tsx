@@ -156,7 +156,8 @@ export default function DiffGrid({ cells, hasFileC = false }: Props) {
     <div
       ref={containerRef}
       tabIndex={0}
-      className="overflow-auto outline-none focus:ring-2 focus:ring-blue-300 rounded"
+      data-testid="diff-grid"
+      className="overflow-scroll h-full w-full outline-none focus:ring-2 focus:ring-blue-300 rounded"
     >
       <table className="border-collapse text-xs select-none">
         <thead>
