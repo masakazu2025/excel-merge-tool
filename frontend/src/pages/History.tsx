@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import type { ReportSummary } from "../types/diff";
 
@@ -26,6 +26,7 @@ export default function History() {
   const [error, setError] = useState("");
   const [cursorRow, setCursorRow] = useState(0);
   const [cursorCol, setCursorCol] = useState(0);
+  const tableRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setLoading(true);
@@ -47,6 +48,7 @@ export default function History() {
         setTotal(data.total ?? 0);
         setCursorRow(0);
         setCursorCol(0);
+        setTimeout(() => tableRef.current?.focus(), 0);
       } catch (e: unknown) {
         setError(e instanceof Error ? e.message : "エラーが発生しました");
       } finally {
@@ -84,11 +86,6 @@ export default function History() {
     [reports, cursorRow, navigate]
   );
 
-  useEffect(() => {
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [handleKeyDown]);
-
   const totalPages = Math.ceil(total / limit);
 
   function handleLimitChange(newLimit: number) {
@@ -112,7 +109,12 @@ export default function History() {
         <p className="text-sm text-gray-400">比較履歴がありません</p>
       ) : (
         <>
-          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+          <div
+            ref={tableRef}
+            tabIndex={0}
+            onKeyDown={(e) => handleKeyDown(e.nativeEvent)}
+            className="bg-white rounded-lg border border-gray-200 overflow-hidden outline-none focus:ring-2 focus:ring-blue-200"
+          >
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-200 text-left text-gray-600">

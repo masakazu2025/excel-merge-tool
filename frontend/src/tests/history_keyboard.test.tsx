@@ -31,6 +31,19 @@ function renderHistory() {
   );
 }
 
+function getTableContainer() {
+  return document.querySelector<HTMLElement>("div[tabindex='0']")!;
+}
+
+async function loadAndFocus() {
+  const user = userEvent.setup();
+  renderHistory();
+  await waitFor(() => screen.getByText("2026-03-19 10:00"));
+  const container = getTableContainer();
+  await user.click(container);
+  return { user, container };
+}
+
 describe("B-038 一覧画面キーボードナビゲーション", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -47,9 +60,7 @@ describe("B-038 一覧画面キーボードナビゲーション", () => {
   });
 
   it("↓キーで次の行に移動する", async () => {
-    const user = userEvent.setup();
-    renderHistory();
-    await waitFor(() => screen.getByText("2026-03-19 10:00"));
+    const { user } = await loadAndFocus();
     await user.keyboard("{ArrowDown}");
     const focused = document.querySelector("td[data-focused='true']");
     expect(focused).toHaveAttribute("data-row", "1");
@@ -57,9 +68,7 @@ describe("B-038 一覧画面キーボードナビゲーション", () => {
   });
 
   it("↑キーで前の行に移動する", async () => {
-    const user = userEvent.setup();
-    renderHistory();
-    await waitFor(() => screen.getByText("2026-03-19 10:00"));
+    const { user } = await loadAndFocus();
     await user.keyboard("{ArrowDown}");
     await user.keyboard("{ArrowUp}");
     const focused = document.querySelector("td[data-focused='true']");
@@ -67,18 +76,14 @@ describe("B-038 一覧画面キーボードナビゲーション", () => {
   });
 
   it("先頭行で↑キーを押しても移動しない", async () => {
-    const user = userEvent.setup();
-    renderHistory();
-    await waitFor(() => screen.getByText("2026-03-19 10:00"));
+    const { user } = await loadAndFocus();
     await user.keyboard("{ArrowUp}");
     const focused = document.querySelector("td[data-focused='true']");
     expect(focused).toHaveAttribute("data-row", "0");
   });
 
   it("末尾行で↓キーを押しても移動しない", async () => {
-    const user = userEvent.setup();
-    renderHistory();
-    await waitFor(() => screen.getByText("2026-03-19 10:00"));
+    const { user } = await loadAndFocus();
     await user.keyboard("{ArrowDown}");
     await user.keyboard("{ArrowDown}");
     await user.keyboard("{ArrowDown}");
@@ -87,18 +92,14 @@ describe("B-038 一覧画面キーボードナビゲーション", () => {
   });
 
   it("→キーで次の列に移動する", async () => {
-    const user = userEvent.setup();
-    renderHistory();
-    await waitFor(() => screen.getByText("2026-03-19 10:00"));
+    const { user } = await loadAndFocus();
     await user.keyboard("{ArrowRight}");
     const focused = document.querySelector("td[data-focused='true']");
     expect(focused).toHaveAttribute("data-col", "1");
   });
 
   it("←キーで前の列に移動する", async () => {
-    const user = userEvent.setup();
-    renderHistory();
-    await waitFor(() => screen.getByText("2026-03-19 10:00"));
+    const { user } = await loadAndFocus();
     await user.keyboard("{ArrowRight}");
     await user.keyboard("{ArrowLeft}");
     const focused = document.querySelector("td[data-focused='true']");
@@ -106,36 +107,27 @@ describe("B-038 一覧画面キーボードナビゲーション", () => {
   });
 
   it("先頭列で←キーを押しても移動しない", async () => {
-    const user = userEvent.setup();
-    renderHistory();
-    await waitFor(() => screen.getByText("2026-03-19 10:00"));
+    const { user } = await loadAndFocus();
     await user.keyboard("{ArrowLeft}");
     const focused = document.querySelector("td[data-focused='true']");
     expect(focused).toHaveAttribute("data-col", "0");
   });
 
   it("末尾列で→キーを押しても移動しない", async () => {
-    const user = userEvent.setup();
-    renderHistory();
-    await waitFor(() => screen.getByText("2026-03-19 10:00"));
-    // 列は4列（0-3）
+    const { user } = await loadAndFocus();
     for (let i = 0; i < 5; i++) await user.keyboard("{ArrowRight}");
     const focused = document.querySelector("td[data-focused='true']");
     expect(focused).toHaveAttribute("data-col", "3");
   });
 
   it("Enterキーでフォーカス行の詳細画面に遷移する", async () => {
-    const user = userEvent.setup();
-    renderHistory();
-    await waitFor(() => screen.getByText("2026-03-19 10:00"));
+    const { user } = await loadAndFocus();
     await user.keyboard("{Enter}");
     expect(mockNavigate).toHaveBeenCalledWith("/report/r1");
   });
 
   it("↓→Enterで2行目の詳細画面に遷移する", async () => {
-    const user = userEvent.setup();
-    renderHistory();
-    await waitFor(() => screen.getByText("2026-03-19 10:00"));
+    const { user } = await loadAndFocus();
     await user.keyboard("{ArrowDown}");
     await user.keyboard("{Enter}");
     expect(mockNavigate).toHaveBeenCalledWith("/report/r2");
