@@ -2,7 +2,7 @@
 id: TASK-040
 title: Ctrl+ホイールでグリッドズーム（B-035実装）
 type: impl
-status: ready
+status: done
 refs:
   - docs/requirements/frontend/REQ-005_report/behaviors/B-035.md
 files:
