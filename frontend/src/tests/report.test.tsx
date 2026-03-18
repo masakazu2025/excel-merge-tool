@@ -7,6 +7,7 @@
  * B-032: 詳細モーダルのサイズ固定とセル表示の統一
  * B-033: グリッドエリアの全画面化とスクロールバー常時表示
  * B-034: フィルタ操作強化（ダブルクリック除外・一括解除・スクロール・検索）
+ * B-035: Ctrl+ホイールでグリッドをズームできる
  */
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { render, screen, waitFor, fireEvent } from '@testing-library/react'
@@ -614,6 +615,45 @@ describe('B-032: 詳細モーダルのサイズ固定とセル表示の統一', 
       const modal = document.querySelector('[data-testid="cell-detail-modal"]')
       expect(modal).toBeInTheDocument()
       expect(modal?.className).toMatch(/h-/)
+    })
+  })
+
+  // B-035
+  describe('B-035: Ctrl+ホイールでグリッドをズームできる', () => {
+    it('Ctrl+ホイールダウンで縮尺が90%になる', () => {
+      const cells = [makeCell({ cell: 'A1', status: 'update', b_value: '新値' })]
+      render(<MemoryRouter><DiffGrid cells={cells} /></MemoryRouter>)
+      const grid = document.querySelector('[data-testid="diff-grid"]') as HTMLElement
+      fireEvent.wheel(grid, { ctrlKey: true, deltaY: 100 })
+      expect(screen.getByText('90%')).toBeInTheDocument()
+    })
+
+    it('100%未満のとき縮尺インジケーターが表示される', () => {
+      const cells = [makeCell({ cell: 'A1', status: 'update', b_value: '新値' })]
+      render(<MemoryRouter><DiffGrid cells={cells} /></MemoryRouter>)
+      const grid = document.querySelector('[data-testid="diff-grid"]') as HTMLElement
+      fireEvent.wheel(grid, { ctrlKey: true, deltaY: 100 })
+      expect(screen.getByText('90%')).toBeInTheDocument()
+    })
+
+    it('縮尺インジケーターをクリックすると100%にリセットされる', () => {
+      const cells = [makeCell({ cell: 'A1', status: 'update', b_value: '新値' })]
+      render(<MemoryRouter><DiffGrid cells={cells} /></MemoryRouter>)
+      const grid = document.querySelector('[data-testid="diff-grid"]') as HTMLElement
+      fireEvent.wheel(grid, { ctrlKey: true, deltaY: 100 })
+      const indicator = screen.getByText('90%')
+      fireEvent.click(indicator)
+      expect(screen.queryByText('90%')).not.toBeInTheDocument()
+    })
+
+    it('縮尺は50%より小さくならない', () => {
+      const cells = [makeCell({ cell: 'A1', status: 'update', b_value: '新値' })]
+      render(<MemoryRouter><DiffGrid cells={cells} /></MemoryRouter>)
+      const grid = document.querySelector('[data-testid="diff-grid"]') as HTMLElement
+      for (let i = 0; i < 10; i++) {
+        fireEvent.wheel(grid, { ctrlKey: true, deltaY: 100 })
+      }
+      expect(screen.getByText('50%')).toBeInTheDocument()
     })
   })
 })
