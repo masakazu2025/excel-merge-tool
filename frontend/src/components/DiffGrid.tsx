@@ -87,10 +87,14 @@ export default function DiffGrid({ cells, hasFileC = false, sheetKey, reportId }
     if (settingsRowInput.trim()) {
       const res = await fetch(`/api/reports/${reportId}/cell-range?sheet=${encodeURIComponent(sheetKey)}&row=${settingsRowInput.trim()}`);
       if (res.ok) setColLabels(await res.json());
+    } else {
+      setColLabels({});
     }
     if (settingsColInput.trim()) {
       const res = await fetch(`/api/reports/${reportId}/cell-range?sheet=${encodeURIComponent(sheetKey)}&col=${settingsColInput.trim()}`);
       if (res.ok) setRowLabels(await res.json());
+    } else {
+      setRowLabels({});
     }
     setShowSettings(false);
   }

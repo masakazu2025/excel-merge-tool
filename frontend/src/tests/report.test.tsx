@@ -731,6 +731,37 @@ describe('B-037: 列名・行名の表示設定', () => {
     await waitFor(() => expect(screen.queryByText('商品名')).not.toBeInTheDocument())
   })
 
+  it('列名と行名を設定後、行名入力を空にして適用すると行名が消える', async () => {
+    const user = userEvent.setup()
+    const cells = [makeCell({ cell: 'B2', status: 'update', b_value: 'B2値' })]
+    vi.spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(JSON.stringify({ B: '商品名' }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ '2': 'りんご' }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ B: '商品名' }), { status: 200 })) // 2回目の適用（行名入力なし）
+    render(<MemoryRouter><DiffGrid cells={cells} reportId="test-report" sheetKey="Sheet1" /></MemoryRouter>)
+
+    // 両方設定
+    await user.click(screen.getByRole('button', { name: /表示設定/ }))
+    await user.type(screen.getByLabelText(/列名に使う行番号/), '1')
+    await user.type(screen.getByLabelText(/行名に使う列番号/), 'A')
+    await user.click(screen.getByRole('button', { name: '適用' }))
+    await waitFor(() => {
+      expect(screen.getByText('商品名')).toBeInTheDocument()
+      expect(screen.getByText('りんご')).toBeInTheDocument()
+    })
+
+    // 行名入力だけ消して再適用
+    await user.click(screen.getByRole('button', { name: /表示設定/ }))
+    const rowColInput = screen.getByLabelText(/行名に使う列番号/)
+    await user.clear(rowColInput)
+    await user.click(screen.getByRole('button', { name: '適用' }))
+    await waitFor(() => {
+      expect(screen.queryByText('りんご')).not.toBeInTheDocument()
+      // 列名は残っている
+      expect(screen.getByText('商品名')).toBeInTheDocument()
+    })
+  })
+
   it('シートを切り替えると設定がリセットされる', async () => {
     const user = userEvent.setup()
     const cells = [makeCell({ cell: 'A2', status: 'update', b_value: 'A2値' })]
