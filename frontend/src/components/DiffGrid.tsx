@@ -44,6 +44,27 @@ export default function DiffGrid({ cells, hasFileC = false, sheetKey }: Props) {
   const [focusedId, setFocusedId] = useState<string | null>(null);
   const [modalCell, setModalCell] = useState<CellDiff | null>(null);
 
+  // ズーム
+  const [zoom, setZoom] = useState(100);
+  const MIN_ZOOM = 50;
+  const MAX_ZOOM = 100;
+  const ZOOM_STEP = 10;
+
+  // passive: false で登録しないと preventDefault() が効かない
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const handler = (e: WheelEvent) => {
+      if (!e.ctrlKey) return;
+      e.preventDefault();
+      setZoom((prev) =>
+        Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, prev + (e.deltaY < 0 ? ZOOM_STEP : -ZOOM_STEP)))
+      );
+    };
+    el.addEventListener("wheel", handler, { passive: false });
+    return () => el.removeEventListener("wheel", handler);
+  }, []);
+
   // 自前ダブルクリック検出（ブラウザの onDoubleClick より確実）
   const lastClickRef = useRef<{ key: string; time: number } | null>(null);
   const DBLCLICK_MS = 400;
@@ -230,6 +251,14 @@ export default function DiffGrid({ cells, hasFileC = false, sheetKey }: Props) {
             すべて解除
           </button>
         )}
+        {zoom < MAX_ZOOM && (
+          <button
+            onClick={() => setZoom(100)}
+            className="ml-auto px-2 py-0.5 rounded text-xs text-gray-500 bg-gray-200 hover:bg-gray-300"
+          >
+            {zoom}%
+          </button>
+        )}
       </div>
       {/* グリッド */}
       <div
@@ -238,6 +267,7 @@ export default function DiffGrid({ cells, hasFileC = false, sheetKey }: Props) {
         data-testid="diff-grid"
         className="overflow-scroll flex-1 outline-none focus:ring-2 focus:ring-blue-300 rounded"
       >
+        <div style={{ zoom: `${zoom}%` }}>
         <table className="border-collapse text-xs select-none">
           <thead>
             <tr>
@@ -295,6 +325,7 @@ export default function DiffGrid({ cells, hasFileC = false, sheetKey }: Props) {
             ))}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
     </>
