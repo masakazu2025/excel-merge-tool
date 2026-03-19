@@ -194,71 +194,63 @@ export default function DiffGrid({ cells, hasFileC = false, sheetKey, reportId }
     uniqueCols.filter((col) => cellMap.has(`${row}-${col}`)).map((col) => `${row}-${col}`)
   );
 
-  const navigate = useCallback(
-    (dir: "up" | "down" | "left" | "right") => {
+  const moveFocus = useCallback(
+    (dir: "up" | "down" | "left" | "right", openModal: boolean) => {
+      let nextKey: string | null = null;
+
       if (!focusedId && orderedKeys.length > 0) {
-        const key = orderedKeys[0];
-        const [r, c] = key.split("-");
-        setFocusedId(key);
-        setModalCell(cellMap.get(`${r}-${c}`) ?? null);
-        return;
-      }
-      if (!focusedId) return;
+        nextKey = orderedKeys[0];
+      } else if (focusedId) {
+        const [curRowStr, curCol] = focusedId.split("-");
+        const curRow = parseInt(curRowStr, 10);
+        const curColNum = colToNum(curCol);
 
-      const [curRowStr, curCol] = focusedId.split("-");
-      const curRow = parseInt(curRowStr, 10);
-      const curColNum = colToNum(curCol);
-
-      if (dir === "right" || dir === "left") {
-        // 同じ行内で変更セルを移動
-        const rowCols = uniqueCols.filter((c) => cellMap.has(`${curRow}-${c}`));
-        const idx = rowCols.indexOf(curCol);
-        const nextCol = dir === "right" ? rowCols[idx + 1] : rowCols[idx - 1];
-        if (!nextCol) return;
-        const key = `${curRow}-${nextCol}`;
-        setFocusedId(key);
-        setModalCell(cellMap.get(key) ?? null);
-      } else {
-        // 上下: 次の行へ移動し、現在の列に最も近い変更セルへスナップ
-        const targetRows = dir === "down"
-          ? uniqueRows.filter((r) => r > curRow)
-          : uniqueRows.filter((r) => r < curRow).reverse();
-        for (const targetRow of targetRows) {
-          const rowCols = uniqueCols.filter((c) => cellMap.has(`${targetRow}-${c}`));
-          if (rowCols.length === 0) continue;
-          // 現在の列番号に最も近い列を選ぶ
-          const nearest = rowCols.reduce((best, c) =>
-            Math.abs(colToNum(c) - curColNum) < Math.abs(colToNum(best) - curColNum) ? c : best
-          );
-          const key = `${targetRow}-${nearest}`;
-          setFocusedId(key);
-          setModalCell(cellMap.get(key) ?? null);
-          return;
+        if (dir === "right" || dir === "left") {
+          const rowCols = uniqueCols.filter((c) => cellMap.has(`${curRow}-${c}`));
+          const idx = rowCols.indexOf(curCol);
+          const nextCol = dir === "right" ? rowCols[idx + 1] : rowCols[idx - 1];
+          if (nextCol) nextKey = `${curRow}-${nextCol}`;
+        } else {
+          const targetRows = dir === "down"
+            ? uniqueRows.filter((r) => r > curRow)
+            : uniqueRows.filter((r) => r < curRow).reverse();
+          for (const targetRow of targetRows) {
+            const rowCols = uniqueCols.filter((c) => cellMap.has(`${targetRow}-${c}`));
+            if (rowCols.length === 0) continue;
+            const nearest = rowCols.reduce((best, c) =>
+              Math.abs(colToNum(c) - curColNum) < Math.abs(colToNum(best) - curColNum) ? c : best
+            );
+            nextKey = `${targetRow}-${nearest}`;
+            break;
+          }
         }
       }
+
+      if (!nextKey) return;
+      setFocusedId(nextKey);
+      if (openModal) setModalCell(cellMap.get(nextKey) ?? null);
     },
     [focusedId, uniqueRows, uniqueCols, cellMap, orderedKeys]
   );
 
   const handleKeyDown = useCallback(
-    (e: KeyboardEvent) => {
+    (e: React.KeyboardEvent) => {
       const dirMap: Record<string, "up" | "down" | "left" | "right"> = {
         ArrowUp: "up", ArrowDown: "down", ArrowLeft: "left", ArrowRight: "right",
       };
       const dir = dirMap[e.key];
-      if (!dir) return;
-      e.preventDefault();
-      navigate(dir);
+      if (dir) {
+        e.preventDefault();
+        moveFocus(dir, modalCell !== null);
+        return;
+      }
+      if (e.key === "Enter" && focusedId) {
+        e.preventDefault();
+        setModalCell(cellMap.get(focusedId) ?? null);
+      }
     },
-    [navigate]
+    [moveFocus, modalCell, focusedId, cellMap]
   );
-
-  // モーダルが開いているときだけキーを有効にする
-  useEffect(() => {
-    if (!modalCell) return;
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [modalCell, handleKeyDown]);
 
   // Scroll focused cell into view
   useEffect(() => {
@@ -365,6 +357,7 @@ export default function DiffGrid({ cells, hasFileC = false, sheetKey, reportId }
         ref={containerRef}
         tabIndex={0}
         data-testid="diff-grid"
+        onKeyDown={handleKeyDown}
         className="overflow-scroll flex-1 outline-none focus:ring-2 focus:ring-blue-300 rounded"
       >
         <div style={{ zoom: `${zoom}%` }}>

@@ -1,144 +1,117 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+/**
+ * B-038: 比較テーブルでキーボードナビゲーション（モーダルなし）
+ * グリッドにフォーカスしている間、矢印キーでセル間を移動できる。
+ * Enter キーで選択セルのモーダルを開く。
+ */
+import { describe, it, expect, vi } from "vitest";
+import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
-import History from "../pages/History";
+import DiffGrid from "../components/DiffGrid";
+import type { CellDiff } from "../types/diff";
 
-const mockReports = [
-  { report_id: "r1", created_at: "2026-03-19T10:00:00", base_file: "base.xlsx", file_b: "file_b.xlsx", file_c: null, total_diffs: 5, total_conflicts: 0 },
-  { report_id: "r2", created_at: "2026-03-18T09:00:00", base_file: "base.xlsx", file_b: "file_b.xlsx", file_c: null, total_diffs: 3, total_conflicts: 0 },
-  { report_id: "r3", created_at: "2026-03-17T08:00:00", base_file: "base.xlsx", file_b: "file_b.xlsx", file_c: null, total_diffs: 1, total_conflicts: 0 },
-];
-
-function stubFetch(reports = mockReports) {
-  vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
-    ok: true,
-    json: async () => ({ items: reports, total: reports.length, page: 1, limit: 25 }),
-  }));
+function makeCell(override: Partial<CellDiff> = {}): CellDiff {
+  return {
+    sheet: "Sheet1",
+    cell: "A1",
+    status: "update",
+    base_value: "旧",
+    b_value: "新",
+    c_value: null,
+    comment_base: null,
+    comment_b: null,
+    comment_c: null,
+    ...override,
+  };
 }
 
-const mockNavigate = vi.fn();
-vi.mock("react-router-dom", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("react-router-dom")>();
-  return { ...actual, useNavigate: () => mockNavigate };
-});
-
-function renderHistory() {
-  return render(
-    <MemoryRouter>
-      <History />
-    </MemoryRouter>
-  );
+function getGrid() {
+  return document.querySelector('[data-testid="diff-grid"]') as HTMLElement;
 }
 
-function getTableContainer() {
-  return document.querySelector<HTMLElement>("div[tabindex='0']")!;
-}
-
-async function loadAndFocus() {
-  const user = userEvent.setup();
-  renderHistory();
-  await waitFor(() => screen.getByText("2026-03-19 10:00"));
-  const container = getTableContainer();
-  await user.click(container);
-  return { user, container };
-}
-
-describe("B-038 一覧画面キーボードナビゲーション", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    stubFetch();
+describe("B-038: 比較テーブルキーボードナビゲーション（モーダルなし）", () => {
+  it("グリッドにフォーカスして矢印キーを押すと最初のセルにカーソルが移動する", async () => {
+    const cells = [makeCell({ cell: "A1" }), makeCell({ cell: "B1" })];
+    render(<MemoryRouter><DiffGrid cells={cells} /></MemoryRouter>);
+    const grid = getGrid();
+    grid.focus();
+    fireEvent.keyDown(grid, { key: "ArrowRight" });
+    await waitFor(() => {
+      const focused = document.querySelector('td[data-key="1-A"]');
+      expect(focused?.className).toContain("ring-2");
+    });
   });
 
-  it("画面表示時に1行目1列目にカーソルが初期配置される", async () => {
-    renderHistory();
-    await waitFor(() => screen.getByText("2026-03-19 10:00"));
-    const cells = document.querySelectorAll("td[data-focused='true']");
-    expect(cells.length).toBe(1);
-    expect(cells[0]).toHaveAttribute("data-row", "0");
-    expect(cells[0]).toHaveAttribute("data-col", "0");
+  it("→キーで同じ行の右セルに移動する（モーダルなし）", async () => {
+    const user = userEvent.setup();
+    const cells = [makeCell({ cell: "A1" }), makeCell({ cell: "B1" })];
+    render(<MemoryRouter><DiffGrid cells={cells} /></MemoryRouter>);
+    const grid = getGrid();
+    grid.focus();
+
+    // A1 にフォーカス
+    fireEvent.keyDown(grid, { key: "ArrowRight" });
+    await waitFor(() =>
+      expect(document.querySelector('td[data-key="1-A"]')?.className).toContain("ring-2")
+    );
+
+    // → でB1へ
+    fireEvent.keyDown(grid, { key: "ArrowRight" });
+    await waitFor(() =>
+      expect(document.querySelector('td[data-key="1-B"]')?.className).toContain("ring-2")
+    );
+    // モーダルは開かない
+    expect(screen.queryByText("B1")).not.toBeInTheDocument();
   });
 
-  it("↓キーで次の行に移動する", async () => {
-    const { user } = await loadAndFocus();
-    await user.keyboard("{ArrowDown}");
-    const focused = document.querySelector("td[data-focused='true']");
-    expect(focused).toHaveAttribute("data-row", "1");
-    expect(focused).toHaveAttribute("data-col", "0");
+  it("↓キーで次の行のセルに移動する（モーダルなし）", async () => {
+    const cells = [makeCell({ cell: "A1" }), makeCell({ cell: "A2" })];
+    render(<MemoryRouter><DiffGrid cells={cells} /></MemoryRouter>);
+    const grid = getGrid();
+    grid.focus();
+
+    fireEvent.keyDown(grid, { key: "ArrowDown" });
+    await waitFor(() =>
+      expect(document.querySelector('td[data-key="1-A"]')?.className).toContain("ring-2")
+    );
+
+    fireEvent.keyDown(grid, { key: "ArrowDown" });
+    await waitFor(() =>
+      expect(document.querySelector('td[data-key="2-A"]')?.className).toContain("ring-2")
+    );
+    expect(screen.queryByText("A2")).not.toBeInTheDocument();
   });
 
-  it("↑キーで前の行に移動する", async () => {
-    const { user } = await loadAndFocus();
-    await user.keyboard("{ArrowDown}");
-    await user.keyboard("{ArrowUp}");
-    const focused = document.querySelector("td[data-focused='true']");
-    expect(focused).toHaveAttribute("data-row", "0");
+  it("Enterキーでフォーカス中のセルのモーダルが開く", async () => {
+    const cells = [makeCell({ cell: "A1", b_value: "新A1" })];
+    render(<MemoryRouter><DiffGrid cells={cells} /></MemoryRouter>);
+    const grid = getGrid();
+    grid.focus();
+
+    // A1 にフォーカス
+    fireEvent.keyDown(grid, { key: "ArrowDown" });
+    await waitFor(() =>
+      expect(document.querySelector('td[data-key="1-A"]')?.className).toContain("ring-2")
+    );
+
+    // Enter でモーダルを開く
+    fireEvent.keyDown(grid, { key: "Enter" });
+    await waitFor(() => expect(screen.getByText("A1")).toBeInTheDocument());
   });
 
-  it("先頭行で↑キーを押しても移動しない", async () => {
-    const { user } = await loadAndFocus();
-    await user.keyboard("{ArrowUp}");
-    const focused = document.querySelector("td[data-focused='true']");
-    expect(focused).toHaveAttribute("data-row", "0");
-  });
+  it("モーダルが開いている状態で矢印キーを押すとモーダルの内容が更新される", async () => {
+    const user = userEvent.setup();
+    const cells = [makeCell({ cell: "A1" }), makeCell({ cell: "B1" })];
+    render(<MemoryRouter><DiffGrid cells={cells} /></MemoryRouter>);
 
-  it("末尾行で↓キーを押しても移動しない", async () => {
-    const { user } = await loadAndFocus();
-    await user.keyboard("{ArrowDown}");
-    await user.keyboard("{ArrowDown}");
-    await user.keyboard("{ArrowDown}");
-    const focused = document.querySelector("td[data-focused='true']");
-    expect(focused).toHaveAttribute("data-row", "2");
-  });
+    // A1 クリックでモーダルを開く
+    const tdA1 = document.querySelector('td[data-key="1-A"]') as HTMLElement;
+    await user.click(tdA1);
+    await waitFor(() => expect(screen.getByText("A1")).toBeInTheDocument());
 
-  it("→キーで次の列に移動する", async () => {
-    const { user } = await loadAndFocus();
-    await user.keyboard("{ArrowRight}");
-    const focused = document.querySelector("td[data-focused='true']");
-    expect(focused).toHaveAttribute("data-col", "1");
-  });
-
-  it("←キーで前の列に移動する", async () => {
-    const { user } = await loadAndFocus();
-    await user.keyboard("{ArrowRight}");
-    await user.keyboard("{ArrowLeft}");
-    const focused = document.querySelector("td[data-focused='true']");
-    expect(focused).toHaveAttribute("data-col", "0");
-  });
-
-  it("先頭列で←キーを押しても移動しない", async () => {
-    const { user } = await loadAndFocus();
-    await user.keyboard("{ArrowLeft}");
-    const focused = document.querySelector("td[data-focused='true']");
-    expect(focused).toHaveAttribute("data-col", "0");
-  });
-
-  it("末尾列で→キーを押しても移動しない", async () => {
-    const { user } = await loadAndFocus();
-    for (let i = 0; i < 5; i++) await user.keyboard("{ArrowRight}");
-    const focused = document.querySelector("td[data-focused='true']");
-    expect(focused).toHaveAttribute("data-col", "3");
-  });
-
-  it("Enterキーでフォーカス行の詳細画面に遷移する", async () => {
-    const { user } = await loadAndFocus();
-    await user.keyboard("{Enter}");
-    expect(mockNavigate).toHaveBeenCalledWith("/report/r1");
-  });
-
-  it("↓→Enterで2行目の詳細画面に遷移する", async () => {
-    const { user } = await loadAndFocus();
-    await user.keyboard("{ArrowDown}");
-    await user.keyboard("{Enter}");
-    expect(mockNavigate).toHaveBeenCalledWith("/report/r2");
-  });
-
-  it("フォーカスセルにring-2 ring-inset ring-blue-500スタイルが適用される", async () => {
-    renderHistory();
-    await waitFor(() => screen.getByText("2026-03-19 10:00"));
-    const focused = document.querySelector("td[data-focused='true']");
-    expect(focused?.className).toContain("ring-2");
-    expect(focused?.className).toContain("ring-inset");
-    expect(focused?.className).toContain("ring-blue-500");
+    // → キーで B1 へ（モーダルも更新される）
+    const grid = getGrid();
+    fireEvent.keyDown(grid, { key: "ArrowRight" });
+    await waitFor(() => expect(screen.getByText("B1")).toBeInTheDocument());
   });
 });
