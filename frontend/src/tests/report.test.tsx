@@ -194,8 +194,9 @@ describe('B-028: キーボードナビゲーション', () => {
     await user.click(tdA1)
     await waitFor(() => expect(screen.getByText('A1')).toBeInTheDocument())
 
-    // → キー
-    fireEvent.keyDown(window, { key: 'ArrowRight' })
+    // → キー（グリッドコンテナに対して発火）
+    const grid = document.querySelector('[data-testid="diff-grid"]') as HTMLElement
+    fireEvent.keyDown(grid, { key: 'ArrowRight' })
     await waitFor(() => expect(screen.getByText('B1')).toBeInTheDocument())
   })
 
@@ -211,7 +212,8 @@ describe('B-028: キーボードナビゲーション', () => {
     await user.click(tdA1)
     await waitFor(() => expect(screen.getByText('A1')).toBeInTheDocument())
 
-    fireEvent.keyDown(window, { key: 'ArrowDown' })
+    const grid = document.querySelector('[data-testid="diff-grid"]') as HTMLElement
+    fireEvent.keyDown(grid, { key: 'ArrowDown' })
     await waitFor(() => expect(screen.getByText('A2')).toBeInTheDocument())
   })
 })
