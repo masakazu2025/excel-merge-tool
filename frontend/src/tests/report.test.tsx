@@ -513,15 +513,41 @@ describe('B-032: 詳細モーダルのサイズ固定とセル表示の統一', 
     })
   })
 
-  // B-033
+  it('モーダルのコンテンツエリアに固定高さが設定されている', async () => {
+    const user = userEvent.setup()
+    const cells = [
+      makeCell({ cell: 'A1', status: 'update', base_value: '旧値', b_value: '新値' }),
+    ]
+    render(<MemoryRouter><DiffGrid cells={cells} hasFileC={false} /></MemoryRouter>)
+    const td = document.querySelector('td[data-key="1-A"]') as HTMLElement
+    await user.click(td)
+
+    await waitFor(() => {
+      const modal = document.querySelector('[data-testid="cell-detail-modal"]')
+      expect(modal).toBeInTheDocument()
+      expect(modal?.className).toMatch(/h-/)
+    })
+  })
+})
+
+// ---------------------------------------------------------------------------
+// B-033: グリッドエリアの全画面化とスクロールバー常時表示
+// ---------------------------------------------------------------------------
+
+describe('B-033: グリッドエリアの全画面化とスクロールバー常時表示', () => {
   it('DiffGrid に overflow-scroll が設定されている', () => {
     const cells = [makeCell({ cell: 'A1', status: 'update', b_value: '新値' })]
     render(<MemoryRouter><DiffGrid cells={cells} /></MemoryRouter>)
     const grid = document.querySelector('[data-testid="diff-grid"]') as HTMLElement
     expect(grid?.className).toMatch(/overflow-scroll/)
   })
+})
 
-  // B-034
+// ---------------------------------------------------------------------------
+// B-034: フィルタ操作強化（ダブルクリック除外・一括解除・スクロール・検索）
+// ---------------------------------------------------------------------------
+
+describe('B-034: フィルタ操作強化', () => {
   it('列ヘッダーを2回クリックするとその列が除外される', async () => {
     const user = userEvent.setup()
     const cells = [
@@ -604,60 +630,47 @@ describe('B-032: 詳細モーダルのサイズ固定とセル表示の統一', 
     expect(screen.queryByLabelText('B')).not.toBeInTheDocument()
     expect(screen.queryByLabelText('C')).not.toBeInTheDocument()
   })
+})
 
-  it('モーダルのコンテンツエリアに固定高さが設定されている', async () => {
-    const user = userEvent.setup()
-    const cells = [
-      makeCell({ cell: 'A1', status: 'update', base_value: '旧値', b_value: '新値' }),
-    ]
-    render(<MemoryRouter><DiffGrid cells={cells} hasFileC={false} /></MemoryRouter>)
-    const td = document.querySelector('td[data-key="1-A"]') as HTMLElement
-    await user.click(td)
+// ---------------------------------------------------------------------------
+// B-035: Ctrl+ホイールでグリッドをズームできる
+// ---------------------------------------------------------------------------
 
-    await waitFor(() => {
-      const modal = document.querySelector('[data-testid="cell-detail-modal"]')
-      expect(modal).toBeInTheDocument()
-      expect(modal?.className).toMatch(/h-/)
-    })
+describe('B-035: Ctrl+ホイールでグリッドをズームできる', () => {
+  it('Ctrl+ホイールダウンで縮尺が90%になる', () => {
+    const cells = [makeCell({ cell: 'A1', status: 'update', b_value: '新値' })]
+    render(<MemoryRouter><DiffGrid cells={cells} /></MemoryRouter>)
+    const grid = document.querySelector('[data-testid="diff-grid"]') as HTMLElement
+    fireEvent.wheel(grid, { ctrlKey: true, deltaY: 100 })
+    expect(screen.getByText('90%')).toBeInTheDocument()
   })
 
-  // B-035
-  describe('B-035: Ctrl+ホイールでグリッドをズームできる', () => {
-    it('Ctrl+ホイールダウンで縮尺が90%になる', () => {
-      const cells = [makeCell({ cell: 'A1', status: 'update', b_value: '新値' })]
-      render(<MemoryRouter><DiffGrid cells={cells} /></MemoryRouter>)
-      const grid = document.querySelector('[data-testid="diff-grid"]') as HTMLElement
-      fireEvent.wheel(grid, { ctrlKey: true, deltaY: 100 })
-      expect(screen.getByText('90%')).toBeInTheDocument()
-    })
+  it('100%未満のとき縮尺インジケーターが表示される', () => {
+    const cells = [makeCell({ cell: 'A1', status: 'update', b_value: '新値' })]
+    render(<MemoryRouter><DiffGrid cells={cells} /></MemoryRouter>)
+    const grid = document.querySelector('[data-testid="diff-grid"]') as HTMLElement
+    fireEvent.wheel(grid, { ctrlKey: true, deltaY: 100 })
+    expect(screen.getByText('90%')).toBeInTheDocument()
+  })
 
-    it('100%未満のとき縮尺インジケーターが表示される', () => {
-      const cells = [makeCell({ cell: 'A1', status: 'update', b_value: '新値' })]
-      render(<MemoryRouter><DiffGrid cells={cells} /></MemoryRouter>)
-      const grid = document.querySelector('[data-testid="diff-grid"]') as HTMLElement
-      fireEvent.wheel(grid, { ctrlKey: true, deltaY: 100 })
-      expect(screen.getByText('90%')).toBeInTheDocument()
-    })
+  it('縮尺インジケーターをクリックすると100%にリセットされる', () => {
+    const cells = [makeCell({ cell: 'A1', status: 'update', b_value: '新値' })]
+    render(<MemoryRouter><DiffGrid cells={cells} /></MemoryRouter>)
+    const grid = document.querySelector('[data-testid="diff-grid"]') as HTMLElement
+    fireEvent.wheel(grid, { ctrlKey: true, deltaY: 100 })
+    const indicator = screen.getByText('90%')
+    fireEvent.click(indicator)
+    expect(screen.queryByText('90%')).not.toBeInTheDocument()
+  })
 
-    it('縮尺インジケーターをクリックすると100%にリセットされる', () => {
-      const cells = [makeCell({ cell: 'A1', status: 'update', b_value: '新値' })]
-      render(<MemoryRouter><DiffGrid cells={cells} /></MemoryRouter>)
-      const grid = document.querySelector('[data-testid="diff-grid"]') as HTMLElement
+  it('縮尺は50%より小さくならない', () => {
+    const cells = [makeCell({ cell: 'A1', status: 'update', b_value: '新値' })]
+    render(<MemoryRouter><DiffGrid cells={cells} /></MemoryRouter>)
+    const grid = document.querySelector('[data-testid="diff-grid"]') as HTMLElement
+    for (let i = 0; i < 10; i++) {
       fireEvent.wheel(grid, { ctrlKey: true, deltaY: 100 })
-      const indicator = screen.getByText('90%')
-      fireEvent.click(indicator)
-      expect(screen.queryByText('90%')).not.toBeInTheDocument()
-    })
-
-    it('縮尺は50%より小さくならない', () => {
-      const cells = [makeCell({ cell: 'A1', status: 'update', b_value: '新値' })]
-      render(<MemoryRouter><DiffGrid cells={cells} /></MemoryRouter>)
-      const grid = document.querySelector('[data-testid="diff-grid"]') as HTMLElement
-      for (let i = 0; i < 10; i++) {
-        fireEvent.wheel(grid, { ctrlKey: true, deltaY: 100 })
-      }
-      expect(screen.getByText('50%')).toBeInTheDocument()
-    })
+    }
+    expect(screen.getByText('50%')).toBeInTheDocument()
   })
 })
 
