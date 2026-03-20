@@ -2,7 +2,7 @@
 id: TASK-044
 title: 一覧画面キーボードナビゲーション実装
 type: impl
-status: ready
+status: done
 refs:
   - docs/requirements/frontend/REQ-004_history/behaviors/B-038.md
 files:
