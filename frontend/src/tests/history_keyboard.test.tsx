@@ -30,32 +30,23 @@ function getGrid() {
 }
 
 describe("B-038: 比較テーブルキーボードナビゲーション（モーダルなし）", () => {
-  it("グリッドにフォーカスして矢印キーを押すと最初のセルにカーソルが移動する", async () => {
+  it("グリッド表示時に先頭セルが自動的にフォーカスされる", async () => {
     const cells = [makeCell({ cell: "A1" }), makeCell({ cell: "B1" })];
     render(<MemoryRouter><DiffGrid cells={cells} /></MemoryRouter>);
-    const grid = getGrid();
-    grid.focus();
-    fireEvent.keyDown(grid, { key: "ArrowRight" });
-    await waitFor(() => {
-      const focused = document.querySelector('td[data-key="1-A"]');
-      expect(focused?.className).toContain("ring-2");
-    });
+    await waitFor(() =>
+      expect(document.querySelector('td[data-key="1-A"]')?.className).toContain("ring-2")
+    );
   });
 
   it("→キーで同じ行の右セルに移動する（モーダルなし）", async () => {
-    const user = userEvent.setup();
     const cells = [makeCell({ cell: "A1" }), makeCell({ cell: "B1" })];
     render(<MemoryRouter><DiffGrid cells={cells} /></MemoryRouter>);
-    const grid = getGrid();
-    grid.focus();
-
-    // A1 にフォーカス
-    fireEvent.keyDown(grid, { key: "ArrowRight" });
+    // A1 は自動フォーカス済み
     await waitFor(() =>
       expect(document.querySelector('td[data-key="1-A"]')?.className).toContain("ring-2")
     );
 
-    // → でB1へ
+    const grid = getGrid();
     fireEvent.keyDown(grid, { key: "ArrowRight" });
     await waitFor(() =>
       expect(document.querySelector('td[data-key="1-B"]')?.className).toContain("ring-2")
@@ -67,14 +58,12 @@ describe("B-038: 比較テーブルキーボードナビゲーション（モー
   it("↓キーで次の行のセルに移動する（モーダルなし）", async () => {
     const cells = [makeCell({ cell: "A1" }), makeCell({ cell: "A2" })];
     render(<MemoryRouter><DiffGrid cells={cells} /></MemoryRouter>);
-    const grid = getGrid();
-    grid.focus();
-
-    fireEvent.keyDown(grid, { key: "ArrowDown" });
+    // A1 は自動フォーカス済み
     await waitFor(() =>
       expect(document.querySelector('td[data-key="1-A"]')?.className).toContain("ring-2")
     );
 
+    const grid = getGrid();
     fireEvent.keyDown(grid, { key: "ArrowDown" });
     await waitFor(() =>
       expect(document.querySelector('td[data-key="2-A"]')?.className).toContain("ring-2")

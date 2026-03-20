@@ -139,6 +139,9 @@ export default function DiffGrid({ cells, hasFileC = false, sheetKey, reportId }
     const saved = filtersBySheet.current.get(key);
     setExcludedCols(saved?.cols ?? new Set());
     setExcludedRows(saved?.rows ?? new Set());
+    setModalCell(null);
+    setFocusedId(null);
+    setTimeout(() => containerRef.current?.focus(), 0);
   }, [sheetKey]);
 
   // Save filter state when it changes
@@ -193,6 +196,15 @@ export default function DiffGrid({ cells, hasFileC = false, sheetKey, reportId }
   const orderedKeys = uniqueRows.flatMap((row) =>
     uniqueCols.filter((col) => cellMap.has(`${row}-${col}`)).map((col) => `${row}-${col}`)
   );
+
+  // シート切替時に先頭セルを自動フォーカス
+  useEffect(() => {
+    if (orderedKeys.length > 0 && focusedId === null) {
+      setFocusedId(orderedKeys[0]);
+    }
+  // orderedKeys は毎レンダーで新配列になるため文字列比較で安定化
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orderedKeys[0], focusedId]);
 
   const moveFocus = useCallback(
     (dir: "up" | "down" | "left" | "right", openModal: boolean) => {
