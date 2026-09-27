@@ -1,7 +1,7 @@
 """B-006: カスタムルール（merge_rules.yaml）を適用する
 
-実装が完了すれば Green になる Red テスト。
-現時点では merge_rules.yaml および適用ロジックが未実装のため FAILED になることを意図している。
+現時点では merge_rules.yaml および適用ロジックが未実装のため、該当テストに xfail(strict=True) を付けている。
+実装して pass するようになったら（XPASS で失敗する）xfail を外すこと。
 
 設定ファイルパス: config/merge_rules.yaml
 """
@@ -10,6 +10,8 @@ import pytest
 from pathlib import Path
 from extractor import extract_diff
 from tests.conftest import make_xlsx
+
+NOT_IMPLEMENTED = pytest.mark.xfail(reason="B-006 未実装（TASK-021）", strict=True)
 
 # config/merge_rules.yaml の想定パス
 CONFIG_DIR = Path(__file__).parent.parent / "config"
@@ -51,10 +53,11 @@ def find(result, coord) -> dict | None:
 
 
 # ---------------------------------------------------------------------------
-# B-006 振舞テスト（現在 Red、実装後に Green になる）
+# B-006 振舞テスト（未実装のため xfail、実装後に外す）
 # ---------------------------------------------------------------------------
 
 class TestExcludedValues:
+    @NOT_IMPLEMENTED
     def test_excluded_value_treated_as_null(self, tmp_path):
         """
         Given: merge_rules.yaml に excluded_values: ["N/A"] が設定されている
@@ -71,6 +74,7 @@ excluded_values:
         assert c is not None
         assert c["status"] == "new"
 
+    @NOT_IMPLEMENTED
     def test_excluded_value_b_treated_as_null(self, tmp_path):
         """
         Given: B セルの値が excluded_values の値 "N/A"
@@ -102,6 +106,7 @@ excluded_values:
         assert c["status"] == "update"
 
 
+@NOT_IMPLEMENTED
 class TestRulePriority:
     def test_cell_rule_takes_priority_over_global(self, tmp_path):
         """

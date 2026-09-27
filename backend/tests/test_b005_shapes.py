@@ -1,10 +1,13 @@
 """B-005: 図形の差分を検出する
 
-実装が完了すれば Green になる Red テスト。
-現時点では extractor.py が図形差分を未実装のため FAILED になることを意図している。
+現時点では extractor.py が図形差分を未実装のため、該当テストに xfail(strict=True) を付けている。
+実装して pass するようになったら（XPASS で失敗する）xfail を外すこと。
 """
+import pytest
 from extractor import extract_diff
 from tests.conftest import make_xlsx, make_xlsx_with_shape
+
+NOT_IMPLEMENTED = pytest.mark.xfail(reason="B-005 未実装（TASK-021）", strict=True)
 
 
 def shapes(result) -> dict:
@@ -32,10 +35,11 @@ class TestShapesFieldStructure:
 
 
 # ---------------------------------------------------------------------------
-# B-005 振舞テスト（現在 Red、実装後に Green になる）
+# B-005 振舞テスト（未実装のため xfail、実装後に外す）
 # ---------------------------------------------------------------------------
 
 class TestShapeTextChanged:
+    @NOT_IMPLEMENTED
     def test_textbox_text_change_detected_in_matched(self):
         """
         Given: base と B で同じ ID の図形（sp）のテキストが変更
@@ -63,6 +67,7 @@ class TestShapeTextChanged:
         assert len(changed) == 0
 
 
+@NOT_IMPLEMENTED
 class TestShapeAddedDeleted:
     def test_shape_added_in_b_appears_in_added_b(self):
         """

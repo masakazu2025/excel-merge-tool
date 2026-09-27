@@ -1,7 +1,6 @@
 """B-030: API レイヤーのエラーハンドリングテスト（E001/E002/E005/E006/E007）"""
 import io
 import json
-import stat
 from pathlib import Path
 
 import pytest
@@ -17,6 +16,18 @@ SHEET = {"Sheet1": {"A1": "値"}}
 
 def _xlsx_file(name: str, data: bytes):
     return (name, io.BytesIO(data), "application/octet-stream")
+
+
+def _deny_access_under(monkeypatch, directory: Path, method: str):
+    """directory 配下のファイルに対する Path.<method> を PermissionError にする"""
+    original = getattr(Path, method)
+
+    def denied(self, *args, **kwargs):
+        if directory in self.parents:
+            raise PermissionError(f"permission denied: {self}")
+        return original(self, *args, **kwargs)
+
+    monkeypatch.setattr(Path, method, denied)
 
 
 # ---------------------------------------------------------------------------
@@ -88,25 +99,20 @@ class TestE005SaveApi:
         """Given: OUTPUT_DIR への書き込み失敗 / When: POST /api/compare / Then: 422 + E005"""
         import api.compare as compare_module
 
-        # 読み取り専用ディレクトリで書き込みを失敗させる
-        ro_dir = tmp_path / "readonly"
-        ro_dir.mkdir()
-        ro_dir.chmod(stat.S_IRUSR | stat.S_IXUSR)
+        # chmod は Windows で効かないため、OUTPUT_DIR 配下への書き込みを PermissionError にする
+        monkeypatch.setattr(compare_module, "OUTPUT_DIR", tmp_path)
+        _deny_access_under(monkeypatch, tmp_path, "write_text")
 
-        monkeypatch.setattr(compare_module, "OUTPUT_DIR", ro_dir)
-        try:
-            xlsx = make_xlsx(SHEET)
-            res = client.post(
-                "/api/compare",
-                files={
-                    "base_file": _xlsx_file("base.xlsx", xlsx),
-                    "file_b": _xlsx_file("b.xlsx", xlsx),
-                },
-            )
-            assert res.status_code == 422
-            assert res.json()["detail"]["error_code"] == "E005"
-        finally:
-            ro_dir.chmod(stat.S_IRWXU)
+        xlsx = make_xlsx(SHEET)
+        res = client.post(
+            "/api/compare",
+            files={
+                "base_file": _xlsx_file("base.xlsx", xlsx),
+                "file_b": _xlsx_file("b.xlsx", xlsx),
+            },
+        )
+        assert res.status_code == 422
+        assert res.json()["detail"]["error_code"] == "E005"
 
 
 # ---------------------------------------------------------------------------
@@ -148,11 +154,9 @@ class TestE007Api:
 
         report_file = tmp_path / "locked_diff.json"
         report_file.write_text("{}", encoding="utf-8")
-        report_file.chmod(0o000)
+        # chmod は Windows で効かないため、OUTPUT_DIR 配下の読み込みを PermissionError にする
+        _deny_access_under(monkeypatch, tmp_path, "read_text")
 
-        try:
-            res = client.get("/api/reports/locked")
-            assert res.status_code == 404
-            assert res.json()["detail"]["error_code"] == "E007"
-        finally:
-            report_file.chmod(0o644)
+        res = client.get("/api/reports/locked")
+        assert res.status_code == 404
+        assert res.json()["detail"]["error_code"] == "E007"

@@ -1,10 +1,13 @@
 """B-004: コメントの差分を検出する
 
-実装が完了すれば Green になる Red テスト。
-現時点では extractor.py がコメントを未実装のため FAILED になることを意図している。
+現時点では extractor.py がコメントを未実装のため、該当テストに xfail(strict=True) を付けている。
+実装して pass するようになったら（XPASS で失敗する）xfail を外すこと。
 """
+import pytest
 from extractor import extract_diff
 from tests.conftest import make_xlsx, make_xlsx_with_comment
+
+NOT_IMPLEMENTED = pytest.mark.xfail(reason="B-004 未実装（TASK-021）", strict=True)
 
 
 def comments(result) -> list:
@@ -30,9 +33,10 @@ class TestCommentsFieldStructure:
 
 
 # ---------------------------------------------------------------------------
-# B-004 振舞テスト（現在 Red、実装後に Green になる）
+# B-004 振舞テスト（未実装のため xfail、実装後に外す）
 # ---------------------------------------------------------------------------
 
+@NOT_IMPLEMENTED
 class TestCommentAdded:
     def test_comment_added_in_b_is_new(self):
         """
@@ -47,6 +51,7 @@ class TestCommentAdded:
         assert any(c.get("cell") == "A1" and c.get("status") == "new" for c in c_list)
 
 
+@NOT_IMPLEMENTED
 class TestCommentDeleted:
     def test_comment_deleted_in_b_is_delete(self):
         """
@@ -61,6 +66,7 @@ class TestCommentDeleted:
         assert any(c.get("cell") == "A1" and c.get("status") == "delete" for c in c_list)
 
 
+@NOT_IMPLEMENTED
 class TestCommentTextChanged:
     def test_comment_text_appended_is_add(self):
         """
